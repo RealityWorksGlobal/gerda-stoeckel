@@ -1,0 +1,114 @@
+/*===========================
+    00_GLOBAL SETTINGS
+===========================*/
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden; /* Prevent the whole page from scrolling */
+    font-family: 'Courier New', Courier, monospace;
+    text-transform: uppercase;
+}
+
+.site-wrapper {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+}
+
+/*===========================
+    01_SIDE HEADER
+===========================*/
+
+.side-header { 
+    display: flex;
+    width: 20%; 
+    padding: 20px;
+    box-sizing: border-box;
+    justify-content: right;
+    
+}
+
+/*===========================
+    01_PIECES DATABASE
+===========================*/
+
+.scroll-container {
+    height: 100vh;
+    margin-top: 200px;
+}
+
+/*===========================
+    01_1_VISUAL COLUMNs
+===========================*/
+
+.visual-zone { 
+    width: 60%;
+}
+#visual-grid {
+    column-count: 3;
+    column-gap: 1px;
+}
+
+.piece-unit {
+    break-inside: avoid; /* Prevents an item from splitting across columns */
+    background-color: #fff;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+.piece-unit img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.piece-id { font-weight: bold; margin-bottom: 5px; }
+
+/*===========================
+    01_2_INFO COLUMN
+===========================*/
+
+.info-zone { 
+    width: 20%; 
+}
+
+#info-grid {
+    column-count: 1;
+}
+.piece-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.tag-list {
+    font-size: 10px;
+    margin-top: 5px;
+    color: #555;
+}
+
+.tag-item { display: inline-block; margin-right: 5px; }
+.tag-item::before { content: "● "; }
+
+.piece-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    font-size: 11px;
+}
+
+.add-btn {
+    background: none;
+    border: none;
+    padding: 2px 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 10px;
+}
+
+.add-btn:hover { font-weight: bold; }
+
