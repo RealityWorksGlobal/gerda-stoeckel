@@ -8,24 +8,55 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <div id="loading-screen">
+        <div class="loader-text">LOADING ARCHIVE...</div>
+    </div>
 
     <div class="site-wrapper">
         <main class="visual-zone scroll-container">
             <div id="visual-grid" class="piece-database"></div>
         </main>
 
-        <section class="info-zone scroll-container">
-            <div id="info-grid" class="piece-database"></div>
+        <section class="info-zone">
+            <div class="info-scroll-wrapper">
+                <div id="info-grid" class="view-state active"></div>
+            </div>
+
+            <div id="overlay-curtain">
+                <div id="overlay-content"></div>
+            </div>
         </section>
 
         <aside class="side-header">
             <header>
                 <h1 class="brand-logo">GERDA STOECKEL</h1>
-                <nav class="main-nav" id="nav-list">
-                    </ul>
-            </nav>
+                <nav class="main-nav">
+                    <ul id="nav-list"></ul>
+                </nav>
+            </header>
         </aside>
     </div>
+
+    <template id="visual-template">
+        <div class="piece-unit">
+            <span class="piece-id"></span>
+            <img class="piece-img" src="" alt="" loading="lazy">
+        </div>
+    </template>
+
+    <template id="info-template">
+        <div class="piece-unit">
+            <div class="piece-header">
+                <span class="p-id-name"></span>
+                <span class="p-price"></span>
+            </div>
+            <div class="tag-list"></div>
+            <div class="piece-footer">
+                <span class="p-size"></span>
+                <button class="snipcart-add-item add-btn">ADD TO CART</button>
+            </div>
+        </div>
+    </template>
 
     <div hidden id="snipcart" data-api-key="YOUR_API_KEY"></div>
     <script src="https://cdn.snipcart.com/themes/v3.0.31/default/snipcart.js"></script>

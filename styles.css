@@ -3,8 +3,12 @@
 ===========================*/
 html, body {
     height: 100%;
+    width: 100%;
     margin: 0;
-    overflow: hidden; /* Prevent the whole page from scrolling */
+    padding: 0;
+    overflow: hidden;
+    scrollbar-width: none; /* Hide scrollbar for Firefox */
+    -ms-overflow-style: none; /* Hide scrollbar for IE/Edge */
     font-family: 'Courier New', Courier, monospace;
     text-transform: uppercase;
 }
@@ -14,6 +18,36 @@ html, body {
     height: 100vh;
     width: 100vw;
 }
+/*===========================
+    00-1_GLOBAL SETTINGS
+===========================*/
+
+#loading-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999; /* Ensures it is on top of everything */
+    transition: opacity 0.5s ease; /* Smooth fade out */
+}
+
+.loader-text {
+    font-size: 14px;
+    letter-spacing: 2px;
+    animation: LoadingPulse 2s infinite ease-in-out;
+}
+
+@keyframes LoadingPulse {
+    0% {opacity: 0.2;}
+    50% {opacity: 1;}
+    100% {opacity: 0.2;}
+
+}
 
 /*===========================
     01_SIDE HEADER
@@ -22,19 +56,40 @@ html, body {
 .side-header { 
     display: flex;
     width: 20%; 
+    height: 100%;
     padding: 20px;
     box-sizing: border-box;
     justify-content: right;
-    
+}
+.nav-item {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2px 0;
+    text-transform: lowercase;
 }
 
-/*===========================
-    01_PIECES DATABASE
-===========================*/
+.circle {
+    font-size: 14px;
+    margin-left: 10px;
+}
 
-.scroll-container {
-    height: 100vh;
-    margin-top: 200px;
+/* Hide state by default */
+.view-state {
+    display: none;
+}
+
+/* Only show the active state */
+.view-state.active {
+    display: block;
+}
+
+/* Keep text formatting clean */
+#content-text {
+    white-space: pre-wrap; /* Respects spreadsheet line breaks */
+    font-size: 13px;
+    margin-top: 20px;
 }
 
 /*===========================
@@ -43,10 +98,13 @@ html, body {
 
 .visual-zone { 
     width: 60%;
+    height: 100%;
+    padding:0px 5px;
+    overflow-y: auto;
 }
 #visual-grid {
     column-count: 3;
-    column-gap: 1px;
+    column-gap: 2px;
 }
 
 .piece-unit {
@@ -71,6 +129,15 @@ html, body {
 
 .info-zone { 
     width: 20%; 
+    height: 100%;
+    overflow: hidden; /* CRITICAL: The parent does NOT scroll */
+    position: relative;
+}
+.info-scroll-wrapper {
+    height: 100%;
+    width: 100%;
+    overflow-y: auto; /* The products scroll inside here */
+    padding-bottom: 50px;
 }
 
 #info-grid {
@@ -111,4 +178,41 @@ html, body {
 }
 
 .add-btn:hover { font-weight: bold; }
+
+/*===========================
+    01_3_TOGGLE POP UP
+===========================*/
+#overlay-curtain {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* Perfect Center */
+    
+    width: 100%; /* Takes up 80% of column width */
+    max-height: 70%; /* Won't touch top/bottom edges */
+    background: #ffffffca;
+    z-index: 50;
+    
+    /* Aesthetics */
+    overflow-y: auto; /* If text is too long, the BOX scrolls, not the page */
+    padding: 200px;
+    
+    /* Visibility Logic */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+#overlay-curtain.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+#overlay-content {
+    white-space: pre-wrap; /* Preserves your line breaks from Google Sheets */
+    font-size: 13px;       /* Matches your font sizing */
+    line-height: 1.4;
+    text-transform: none;
+
+}
 
