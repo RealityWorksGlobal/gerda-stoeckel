@@ -179,6 +179,13 @@ function buildNavMenu() {
             }
         });
 
+        if (item.name.toLowerCase() === 'cart') {
+            li.addEventListener('click', () => {
+                // This is the native Snipcart command to open the side-panel
+                Snipcart.api.theme.cart.open();
+            });
+        }
+
         navList.appendChild(li);
 
         // Auto-select "database" on initial Load
@@ -219,6 +226,16 @@ function getDirectImgLink(url) {
 // 5. DATABASE
 // ---------------------------------------------------------
 async function initDatabase() {
+    // 1. SAFETY TIMEOUT: Force hide loader after 5 seconds if images hang
+    const safetyTimer = setTimeout(() => {
+        const loader = document.getElementById('loading-screen');
+        if (loader && !loader.classList.contains('loader-hidden')) {
+            console.warn("Gerda: Loader forced to hide (timeout). Check image links.");
+            loader.classList.add('loader-hidden');
+            setTimeout(() => { loader.style.display = 'none'; }, 800);
+        }
+    }, 5000);
+
     try {
         const response = await fetch(SHEET_URL);
         const csvData = await response.text();
@@ -237,7 +254,11 @@ async function initDatabase() {
         
         const checkProgress = () => {
             imagesLoaded++;
+            // Debugging: View progress in your console
+            console.log(`Gerda Load Progress: ${imagesLoaded}/${totalImages}`);
+            
             if (imagesLoaded >= totalImages) {
+                clearTimeout(safetyTimer); // Cancel safety timer if we finish early
                 const loader = document.getElementById('loading-screen');
                 if (loader) {
                     loader.classList.add('loader-hidden');
@@ -246,13 +267,17 @@ async function initDatabase() {
             }
         };
 
-        // Pass 1: Count
-        products.forEach(p => { if (p[imgKey]) totalImages++; });
-        if (totalImages === 0) document.getElementById('loading-screen').style.display = 'none';
+        // Pass 1: Count valid images
+        products.forEach(p => { if (p[imgKey] && p[imgKey].trim() !== "") totalImages++; });
         
-        const visualElements = []; // Store visual items here
+        if (totalImages === 0) {
+            clearTimeout(safetyTimer);
+            document.getElementById('loading-screen').style.display = 'none';
+        }
         
-        // Pass 2: Build
+        const visualElements = []; 
+        
+        // Pass 2: Build Elements
         products.forEach((piece) => {
             const p = {
                 id:    piece['id'],
@@ -276,14 +301,13 @@ async function initDatabase() {
                 imgEl.src = p.img;
                 imgEl.alt = p.name;
                 imgEl.onload = checkProgress;
-                imgEl.onerror = checkProgress;
+                imgEl.onerror = checkProgress; // Don't hang on broken links
             } else {
                 imgEl.remove();
             }
             
-            // Assign ID and save to array
             const itemNode = vClone.firstElementChild;
-            itemNode.setAttribute('data-hover-id', p.id); // <-- Added ID for hover sync
+            itemNode.setAttribute('data-hover-id', p.id); 
             visualElements.push(itemNode);
 
             // --- INFO SETUP ---
@@ -302,39 +326,36 @@ async function initDatabase() {
                 }
             });
 
+            // --- SNIPCART BUTTON SETUP ---
             const btn = iClone.querySelector('.add-btn');
+            btn.className = 'add-btn snipcart-add-item'; // Required class
             btn.setAttribute('data-item-id', p.id);
             btn.setAttribute('data-item-name', p.name);
+            // Clean price for Snipcart (removes CHF/$, keeps numbers)
             btn.setAttribute('data-item-price', p.price ? p.price.replace(/[^0-9.]/g, '') : '0');
-            btn.setAttribute('data-item-url', window.location.href.split('#')[0]);
+            btn.setAttribute('data-item-url', window.location.origin + window.location.pathname);
             btn.setAttribute('data-item-image', p.img);
+            btn.setAttribute('data-item-description', `${p.style} ${p.type} in ${p.color}`);
 
-            // Assign ID to info item before appending
             const infoItemNode = iClone.firstElementChild;
             if (infoItemNode) {
-                infoItemNode.setAttribute('data-hover-id', p.id); // <-- Added ID for hover sync
+                infoItemNode.setAttribute('data-hover-id', p.id);
             }
             infoGrid.appendChild(iClone);
         });
 
-        // ---------------------------------------------------------
-        // --- RESPONSIVE JOURNAL LAYOUT LOGIC ---
-        // ---------------------------------------------------------
-        const MIN_COL_WIDTH = 400; // Minimum pixel width per column
-        const MAX_COLS = 3;        // Base maximum number of columns
+        // --- LAYOUT LOGIC ---
+        const MIN_COL_WIDTH = 400; 
+        const MAX_COLS = 3;        
 
         function layoutVisualGrid() {
-            visualGrid.innerHTML = ''; // Clear out the grid to start fresh
-            
-            // 1. Calculate how many columns we can fit
+            visualGrid.innerHTML = ''; 
             const gridWidth = visualGrid.offsetWidth || window.innerWidth / 2;
             let numCols = Math.floor(gridWidth / MIN_COL_WIDTH);
             
-            // Enforce our limits
             if (numCols > MAX_COLS) numCols = MAX_COLS;
             if (numCols < 1) numCols = 1;
 
-            // 2. Build the physical column containers
             const columns = [];
             for (let i = 0; i < numCols; i++) {
                 const col = document.createElement('div');
@@ -343,9 +364,7 @@ async function initDatabase() {
                 columns.push(col);
             }
 
-            // 3. Deal the items vertically (Journal Style)
             const itemsPerCol = Math.ceil(visualElements.length / numCols);
-
             visualElements.forEach((el, index) => {
                 const targetColIndex = Math.floor(index / itemsPerCol);
                 const safeColIndex = Math.min(targetColIndex, numCols - 1); 
@@ -353,14 +372,12 @@ async function initDatabase() {
             });
         }
 
-        // Run it immediately on load
         layoutVisualGrid();
-
-        // Listen for window resizing and automatically recalculate the columns
         window.addEventListener('resize', layoutVisualGrid);
 
     } catch (err) {
-        console.error("Database connection failed", err);
+        console.error("Gerda Database Error:", err);
+        document.getElementById('loading-screen').style.display = 'none';
     }
 }
 
@@ -431,4 +448,4 @@ document.addEventListener('click', (e) => {
             el.classList.add('selected-twin');
         });
     }
-});
+})

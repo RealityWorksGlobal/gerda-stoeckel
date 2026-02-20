@@ -6,6 +6,9 @@
     <title>GERDA STOECKEL</title>
     <link rel="stylesheet" href="https://cdn.snipcart.com/themes/v3.0.31/default/snipcart.css" />
     <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://app.snipcart.com">
+    <link rel="preconnect" href="https://cdn.snipcart.com">
+    <link rel="stylesheet" href="https://cdn.snipcart.com/themes/v3.4.1/default/snipcart.css" />
 </head>
 <body>
     <div id="loading-screen">
@@ -58,8 +61,20 @@
         </div>
     </template>
 
-    <div hidden id="snipcart" data-api-key="YOUR_API_KEY"></div>
-    <script src="https://cdn.snipcart.com/themes/v3.0.31/default/snipcart.js"></script>
+    <script>
+    window.SnipcartSettings = {
+        publicApiKey: 'MDRkNjBkZjMtMzk0OC00MGMyLWE2ZDYtMTFjY2Q4Y2UzYWI0NjM5MDcxOTc1NDQxNzY4MTYy', // Replace with key from Dashboard
+        loadStrategy: 'on-hover',
+        modalStyle: 'side', // Keeps the "editorial" side-panel look
+    };
+
+    (() => {
+        var c, d; (d = (c = window.SnipcartSettings).version) || (c.version = "3.0");
+        var s, t; s = document.createElement("script"); s.src = "https://cdn.snipcart.com/themes/v3.0/default/snipcart.js";
+        s.async = !0; t = document.getElementsByTagName("script")[0]; t.parentNode.insertBefore(s, t);
+    })();
+    </script>
+    
     <script src="script.js"></script>
 </body>
 </html>

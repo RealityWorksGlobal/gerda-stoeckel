@@ -90,7 +90,8 @@ body.item-is-clicked #info-grid {
     display: flex;
     width: 15%; 
     height: 100%;
-    padding: 20px;
+    padding: 10px;
+    margin: 0;
     box-sizing: border-box;
     justify-content: right;
 }
@@ -104,10 +105,10 @@ body.item-is-clicked #info-grid {
 .nav-item {
     cursor: pointer;
     display: flex;
-    justify-content: space-between;
+    justify-content: right;
     align-items: center;
     padding: 2px 0;
-    text-transform: lowercase;
+    margin: 0;
 }
 
 
@@ -128,9 +129,9 @@ body.item-is-clicked #info-grid {
 
 /* Keep text formatting clean */
 #content-text {
-    white-space: pre-wrap; /* Respects spreadsheet line breaks */
     font-size: 13px;
-    margin-top: 20px;
+    padding: 10px;
+    margin: 0;
 }
 
 /*===========================
@@ -198,6 +199,7 @@ body.item-is-clicked #info-grid {
     height: 100%;
     overflow: hidden; /* CRITICAL: The parent does NOT scroll */
     position: relative;
+    padding: 0px 10px;
     
 }
 .info-scroll-wrapper {
@@ -262,12 +264,10 @@ body.item-is-clicked #info-grid {
     
     width: 100%; /* Takes up 80% of column width */
     height: 100%; /* Won't touch top/bottom edges */
-    background-color: #ffffffe5;
     z-index: 50;
     
     /* Aesthetics */
     overflow-y: auto; /* If text is too long, the BOX scrolls, not the page */
-    padding: 200px;
     
     /* Visibility Logic */
     opacity: 0;
@@ -278,6 +278,9 @@ body.item-is-clicked #info-grid {
 #overlay-curtain.active {
     opacity: 1;
     pointer-events: auto;
+    background-color: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(12px);
 }
 
 #overlay-content {
@@ -285,5 +288,5 @@ body.item-is-clicked #info-grid {
     font-size: 13px;       /* Matches your font sizing */
     line-height: 1.4;
     text-transform: none;
-
+    padding-top: 10px;
 }
