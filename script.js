@@ -92,7 +92,7 @@ async function initSite() {
 }
 
 // ---------------------------------------------------------
-// 3. BUILD MENU (With Type Logic)
+// 3. BUILD MENU (Cleaned & Consolidated)
 // ---------------------------------------------------------
 function buildNavMenu() {
     const navList = document.getElementById('nav-list');
@@ -100,23 +100,18 @@ function buildNavMenu() {
     const overlayContent = document.getElementById('overlay-content');
 
     navList.innerHTML = '';
-    
-    // We will save the database element here so we can easily reset to it later
     let databaseItemEl = null; 
 
-    // --- HELPER FUNCTION: Close overlay and reset visuals to Database ---
     function closeOverlayAndReset() {
         overlay.classList.remove('active');
-        window.location.hash = ''; // Clear hash
+        window.location.hash = ''; 
         
-        // Wipe all active states and make circles empty
         document.querySelectorAll('.nav-item').forEach(el => {
             el.classList.remove('active');
             const circle = el.querySelector('.circle');
             if (circle) circle.textContent = '○';
         });
 
-        // Turn 'database' back on
         if (databaseItemEl) {
             databaseItemEl.classList.add('active');
             const dbCircle = databaseItemEl.querySelector('.circle');
@@ -124,71 +119,71 @@ function buildNavMenu() {
         }
     }
 
-    // --- LOOP THROUGH NAV ITEMS ---
     navRows.forEach(item => {
         if (!item.name) return;
 
         const name = item.name.toLowerCase();
         const type = (item.type || '').toLowerCase();
-        
         const li = document.createElement('li');
         li.className = 'nav-item';
 
-        // 1. VISUALS: Failsafe to guarantee 'database' gets a circle even if the sheet lags
         const isToggleOrDb = (type === 'toggle' || name === 'database');
-
-        if (isToggleOrDb) {
-            li.innerHTML = `${item.name} <span class="circle">○</span>`;
+        
+        // --- 1. SET THE VISUAL CONTENT (Cleaned up!) ---
+        if (name === 'cart') {
+            // Inject the magic Snipcart counter
+            li.innerHTML = 'CART (<span class="snipcart-items-count">0</span>)';
+        } else if (isToggleOrDb) {
+            // Inject the name and the circle for toggles/database
+            li.innerHTML = `${item.name.toUpperCase()} <span class="circle">○</span>`;
         } else {
-            li.innerHTML = `${item.name}`; // No circle for cart, filter, sort
+            // Standard links
+            li.textContent = item.name.toUpperCase();
         }
 
-        // Save reference to the database list item for our reset function
-        if (name === 'database') {
-            databaseItemEl = li;
-        }
+        if (name === 'database') databaseItemEl = li;
 
-        // 2. CLICK BEHAVIOR
-        li.addEventListener('click', () => {
-            
-            if (isToggleOrDb) {
-                // If it's the database, just close everything
-                if (name === 'database') {
-                    closeOverlayAndReset(); 
-                } else {
-                    // Update visuals for clicked toggle
-                    document.querySelectorAll('.nav-item').forEach(el => {
-                        el.classList.remove('active');
-                        const circle = el.querySelector('.circle');
-                        if (circle) circle.textContent = '○';
-                    });
-                    
-                    li.classList.add('active');
-                    const myCircle = li.querySelector('.circle');
-                    if (myCircle) myCircle.textContent = '●';
+        // --- 2. SINGLE CONSOLIDATED CLICK LISTENER ---
+        li.addEventListener('click', (e) => {
+            // Handle Snipcart
+            if (name === 'cart') {
+                e.preventDefault();
+                closeOverlayAndReset();
+                if (window.Snipcart) Snipcart.api.theme.cart.open();
+                return; // Don't do anything else
+            }
 
-                    // Open the overlay for about, contact, etc.
-                    overlayContent.innerHTML = (item.text || '').replace(/\n/g, '<br>');
-                    overlay.classList.add('active');
-                    overlay.scrollTop = 0; 
-                    if(item.url) window.location.hash = item.url;
-                }
+            // Handle Database reset
+            if (name === 'database') {
+                closeOverlayAndReset();
+                return;
+            }
+
+            // Handle Overlay Toggles (About, Shipping, etc)
+            if (type === 'toggle') {
+                document.querySelectorAll('.nav-item').forEach(el => {
+                    el.classList.remove('active');
+                    const circle = el.querySelector('.circle');
+                    if (circle) circle.textContent = '○';
+                });
+                
+                li.classList.add('active');
+                const myCircle = li.querySelector('.circle');
+                if (myCircle) myCircle.textContent = '●';
+
+                overlayContent.innerHTML = (item.text || '').replace(/\n/g, '<br>');
+                overlay.classList.add('active');
+                overlay.scrollTop = 0; 
+                if(item.url) window.location.hash = item.url;
             } else {
-            
+                // If it's a generic link, just reset
                 closeOverlayAndReset();
             }
         });
 
-        if (item.name.toLowerCase() === 'cart') {
-            li.addEventListener('click', () => {
-                // This is the native Snipcart command to open the side-panel
-                Snipcart.api.theme.cart.open();
-            });
-        }
-
         navList.appendChild(li);
 
-        // Auto-select "database" on initial Load
+        // --- 3. SET INITIAL DATABASE STATE ---
         if (name === 'database') {
             li.classList.add('active');
             const circle = li.querySelector('.circle');
@@ -196,16 +191,11 @@ function buildNavMenu() {
         }
     });
 
-    // Listens for a click specifically on the background curtain, not the text inside
+    // Close on background click
     document.addEventListener('click', (event) => {
-        // Only trigger if the pop-up is currently active/open
         if (overlay.classList.contains('active')) {
-            
-            // Did they click outside the text zone?
             const clickedOutsideText = !overlayContent.contains(event.target);
-            // Did they click outside the navigation menu? (We don't want to interfere with menu clicks)
             const clickedOutsideNav = !navList.contains(event.target);
-
             if (clickedOutsideText && clickedOutsideNav) {
                 closeOverlayAndReset();
             }
@@ -214,7 +204,7 @@ function buildNavMenu() {
 }
 
 // ---------------------------------------------------------
-// 4. IMAGE HELPER
+// 4. IMAGE HELPER (Stayed the same)
 // ---------------------------------------------------------
 function getDirectImgLink(url) {
     if (!url || !url.includes('drive.google.com')) return url;
@@ -223,14 +213,12 @@ function getDirectImgLink(url) {
 }
 
 // ---------------------------------------------------------
-// 5. DATABASE
+// 5. DATABASE (Fixed & Consolidated)
 // ---------------------------------------------------------
 async function initDatabase() {
-    // 1. SAFETY TIMEOUT: Force hide loader after 5 seconds if images hang
     const safetyTimer = setTimeout(() => {
         const loader = document.getElementById('loading-screen');
         if (loader && !loader.classList.contains('loader-hidden')) {
-            console.warn("Gerda: Loader forced to hide (timeout). Check image links.");
             loader.classList.add('loader-hidden');
             setTimeout(() => { loader.style.display = 'none'; }, 800);
         }
@@ -254,11 +242,8 @@ async function initDatabase() {
         
         const checkProgress = () => {
             imagesLoaded++;
-            // Debugging: View progress in your console
-            console.log(`Gerda Load Progress: ${imagesLoaded}/${totalImages}`);
-            
             if (imagesLoaded >= totalImages) {
-                clearTimeout(safetyTimer); // Cancel safety timer if we finish early
+                clearTimeout(safetyTimer);
                 const loader = document.getElementById('loading-screen');
                 if (loader) {
                     loader.classList.add('loader-hidden');
@@ -267,17 +252,11 @@ async function initDatabase() {
             }
         };
 
-        // Pass 1: Count valid images
         products.forEach(p => { if (p[imgKey] && p[imgKey].trim() !== "") totalImages++; });
-        
-        if (totalImages === 0) {
-            clearTimeout(safetyTimer);
-            document.getElementById('loading-screen').style.display = 'none';
-        }
+        if (totalImages === 0) document.getElementById('loading-screen').style.display = 'none';
         
         const visualElements = []; 
-        
-        // Pass 2: Build Elements
+
         products.forEach((piece) => {
             const p = {
                 id:    piece['id'],
@@ -287,36 +266,47 @@ async function initDatabase() {
                 color: piece['color'],
                 size:  piece['size'],
                 price: piece['price'],
+                sold:  piece['sold'], // Added this
                 img:   getDirectImgLink(piece[imgKey]) 
             };
 
             if (!p.id) return;
 
-            // --- VISUAL SETUP ---
+            const isSold = p.sold && p.sold.toLowerCase() === 'yes';
+
+            // --- 1. VISUAL GRID ELEMENT ---
             const vClone = vTemplate.content.cloneNode(true);
-            vClone.querySelector('.piece-id').textContent = `${p.id}.`;
-            const imgEl = vClone.querySelector('.piece-img');
+            const vItemNode = vClone.firstElementChild;
+            vItemNode.querySelector('.piece-id').textContent = `${p.id}.`;
             
+            const imgEl = vItemNode.querySelector('.piece-img');
             if (p.img) {
                 imgEl.src = p.img;
-                imgEl.alt = p.name;
                 imgEl.onload = checkProgress;
-                imgEl.onerror = checkProgress; // Don't hang on broken links
+                imgEl.onerror = checkProgress; 
             } else {
                 imgEl.remove();
             }
-            
-            const itemNode = vClone.firstElementChild;
-            itemNode.setAttribute('data-hover-id', p.id); 
-            visualElements.push(itemNode);
 
-            // --- INFO SETUP ---
+            if (isSold) {
+                vItemNode.classList.add('is-sold'); // This triggers the CSS blur
+            }
+
+            vItemNode.setAttribute('data-hover-id', p.id); 
+            visualElements.push(vItemNode);
+
+            // --- 2. INFO GRID ELEMENT ---
             const iClone = iTemplate.content.cloneNode(true);
-            iClone.querySelector('.p-id-name').textContent = `${p.id}. ${p.name}`;
-            iClone.querySelector('.p-price').textContent = p.price;
-            iClone.querySelector('.p-size').textContent = p.size;
+            const iItemNode = iClone.firstElementChild;
+            if (isSold) {
+                iItemNode.classList.add('is-sold');
+            }
             
-            const tagContainer = iClone.querySelector('.tag-list');
+            iItemNode.querySelector('.p-id-name').textContent = `${p.id}. ${p.name}`;
+            iItemNode.querySelector('.p-price').textContent = p.price;
+            iItemNode.querySelector('.p-size').textContent = p.size;
+            
+            const tagContainer = iItemNode.querySelector('.tag-list');
             [p.color, p.type, p.style].forEach(tag => {
                 if (tag) {
                     const span = document.createElement('span');
@@ -326,25 +316,36 @@ async function initDatabase() {
                 }
             });
 
-            // --- SNIPCART BUTTON SETUP ---
-            const btn = iClone.querySelector('.add-btn');
-            btn.className = 'add-btn snipcart-add-item'; // Required class
-            btn.setAttribute('data-item-id', p.id);
-            btn.setAttribute('data-item-name', p.name);
-            // Clean price for Snipcart (removes CHF/$, keeps numbers)
-            btn.setAttribute('data-item-price', p.price ? p.price.replace(/[^0-9.]/g, '') : '0');
-            btn.setAttribute('data-item-url', window.location.origin + window.location.pathname);
-            btn.setAttribute('data-item-image', p.img);
-            btn.setAttribute('data-item-description', `${p.style} ${p.type} in ${p.color}`);
-
-            const infoItemNode = iClone.firstElementChild;
-            if (infoItemNode) {
-                infoItemNode.setAttribute('data-hover-id', p.id);
+            // --- 3. SNIPCART BUTTON LOGIC ---
+            const btn = iItemNode.querySelector('.add-btn');
+            
+            if (isSold) {
+                // If SOLD: Disable button and change appearance
+                btn.textContent = 'SOLD';
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
+                btn.className = 'add-btn sold-out'; // Remove Snipcart class
+            } else {
+                // If AVAILABLE: Setup Snipcart
+                btn.className = 'add-btn snipcart-add-item'; 
+                btn.setAttribute('data-item-id', p.id);
+                btn.setAttribute('data-item-name', p.name);
+                
+                let cleanPrice = p.price ? parseFloat(p.price.toString().replace(/[^0-9.]/g, '')) : 0;
+                let finalPrice = isNaN(cleanPrice) ? '0.00' : cleanPrice.toFixed(2);
+                
+                btn.setAttribute('data-item-price', finalPrice);
+                btn.setAttribute('data-item-url', window.location.origin + window.location.pathname);
+                btn.setAttribute('data-item-image', p.img);
+                btn.setAttribute('data-item-description', `${p.style} ${p.type}`);
             }
-            infoGrid.appendChild(iClone);
+
+            iItemNode.setAttribute('data-hover-id', p.id);
+            infoGrid.appendChild(iItemNode);
         });
 
-        // --- LAYOUT LOGIC ---
+        // --- 4. LAYOUT LOGIC ---
         const MIN_COL_WIDTH = 250; 
         const MAX_COLS = 3;        
 
@@ -352,7 +353,6 @@ async function initDatabase() {
             visualGrid.innerHTML = ''; 
             const gridWidth = visualGrid.offsetWidth || window.innerWidth / 2;
             let numCols = Math.floor(gridWidth / MIN_COL_WIDTH);
-            
             if (numCols > MAX_COLS) numCols = MAX_COLS;
             if (numCols < 1) numCols = 1;
 
@@ -366,8 +366,7 @@ async function initDatabase() {
 
             const itemsPerCol = Math.ceil(visualElements.length / numCols);
             visualElements.forEach((el, index) => {
-                const targetColIndex = Math.floor(index / itemsPerCol);
-                const safeColIndex = Math.min(targetColIndex, numCols - 1); 
+                const safeColIndex = Math.min(Math.floor(index / itemsPerCol), numCols - 1); 
                 columns[safeColIndex].appendChild(el);
             });
         }
@@ -449,3 +448,29 @@ document.addEventListener('click', (e) => {
         });
     }
 })
+
+// ---------------------------------------------------------
+// 8. SNIPCART: CLICK-AWAY TO CLOSE (Fixed!)
+// ---------------------------------------------------------
+document.addEventListener('click', (event) => {
+    // Find the cart modal in the DOM (Snipcart only mounts this when it's open)
+    const snipcartModal = document.querySelector('.snipcart-modal');
+    
+    // If the modal isn't currently open/on the screen, stop here.
+    if (!snipcartModal) return;
+
+    // 1. Did they click inside the actual cart drawer?
+    if (snipcartModal.contains(event.target)) return;
+    
+    // 2. Did they click an "ADD TO CART" button? 
+    if (event.target.closest('.snipcart-add-item')) return;
+    
+    // 3. Did they click a Nav button (like "CART")?
+    if (event.target.closest('.nav-item')) return;
+
+    // If we made it this far, they clicked the background or the image grid!
+    // Force Snipcart to snap shut.
+    if (window.Snipcart) {
+        Snipcart.api.theme.cart.close();
+    }
+});

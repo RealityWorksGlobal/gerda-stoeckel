@@ -23,12 +23,6 @@ html, body {
 ::-webkit-scrollbar {
     display: none; 
 }
-* {
-    scrollbar-width: none;
-}
-* {
-    -ms-overflow-style: none;
-}
 
 /* ITEM click BLUR */
 
@@ -289,4 +283,134 @@ body.item-is-clicked #info-grid {
     line-height: 1.4;
     text-transform: none;
     padding-top: 10px;
+}
+
+/* =========================================
+   SNIPCART: THE PURE GERDA OVERRIDE
+========================================= */
+
+/* 1. LOCK TO THE INFO-ZONE (Exact same place as your pop-ups) */
+.snipcart-modal {
+    position: fixed !important;
+    top: 0 !important;
+    right: 15vw !important; /* Offset by your side-header width */
+    width: 20vw !important; /* Match your info-zone width */
+    height: 100vh !important;
+    
+    /* The Glassmorphism Backdrop */
+    background-color: rgba(255, 255, 255, 0.2) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+}
+
+/* 2. INVISIBLE CONTAINERS (No borders, no shadows, no backgrounds) */
+.snipcart-modal__container,
+.snipcart-cart-header,
+.snipcart-item-line,
+.snipcart-cart__footer,
+.snipcart-cart-summary,
+.snipcart-discount-box,
+.snipcart-layout {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+}
+
+/* 3. PURITY: NO IMAGES */
+.snipcart-item-line__media {
+    display: none !important; 
+}
+
+/* 4. TOTAL TYPOGRAPHY OVERRIDE (Monospace & Uppercase everywhere) */
+#snipcart * {
+    font-family: 'Courier New', Courier, monospace !important;
+    text-transform: uppercase !important;
+    border-radius: 0 !important; /* Kills ALL hidden soft corners */
+        background: transparent !important;
+}
+
+/* Make text pure black */
+.snipcart-cart-header__title,
+.snipcart-item-line__title,
+.snipcart-item-line__price,
+.snipcart-summary-fees__amount,
+.snipcart-cart-summary__title {
+    color: #000 !important;
+    font-weight: bold !important;
+}
+
+/* 5. BRUTALIST BUTTONS */
+.snipcart-base-button {
+    background-color: #000 !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.snipcart-cart-header__close-button,
+.snipcart-empty-cart__button,
+.snipcart-cart-header__options {
+    display: none !important;
+}
+
+.snipcart-base-button:hover {
+    background-color: #333 !important;
+}
+
+/* Fix Snipcart's internal layout so it fits nicely in your narrow column */
+.snipcart-item-line__product {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px;
+}
+
+/* =========================================
+   SOLD ITEMS
+========================================= */
+
+/* 1. THE MAIN CONTAINER: Kill all interactions for sold units */
+.piece-unit.is-sold {
+    position: relative;
+    pointer-events: none !important; 
+    cursor: default;
+    user-select: none;
+}
+
+/* 2. THE IMAGE: Heavy blur and grayscale */
+.piece-unit.is-sold img {
+    filter: blur(40px) grayscale(100%);
+    opacity: 0.6;
+}
+
+/* 3. THE INFO TEXT: Moderate blur for the "redacted" look */
+.piece-unit.is-sold .p-id-name,
+.piece-unit.is-sold .p-price,
+.piece-unit.is-sold .p-size,
+.piece-unit.is-sold .tag-list {
+    filter: blur(8px);
+    opacity: 1;
+}
+
+/* 4. THE OVERLAY: Pure black SOLD label */
+.piece-unit.is-sold::after {
+
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Courier New', monospace;
+    font-size: 1.2rem;
+    color: #000;
+    z-index: 2;
+    letter-spacing: 0.1em;
+}
+
+/* 5. THE BUTTON: Ensure the SOLD button matches the vibe */
+.piece-unit.is-sold .add-btn.sold-out {
+    opacity: 0.5;
+    filter: blur(2px); /* Makes the button look as dead as the text */
 }
