@@ -345,7 +345,7 @@ async function initDatabase() {
         });
 
         // --- LAYOUT LOGIC ---
-        const MIN_COL_WIDTH = 400; 
+        const MIN_COL_WIDTH = 250; 
         const MAX_COLS = 3;        
 
         function layoutVisualGrid() {
