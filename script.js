@@ -4,57 +4,66 @@ const NAV_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRu2J4Brx
 let navRows = []; 
 
 // ---------------------------------------------------------
-// 1. ROBUST CSV PARSER (Handles Newlines in Text)
-// ---------------------------------------------------------
-// ---------------------------------------------------------
 // 1. ROBUST CSV PARSER (Handles Newlines & Spaces)
 // ---------------------------------------------------------
 function parseCSV(csvText) {
-    const rawLines = csvText.split(/\r?\n/);
-    const mergedRows = [];
-    let currentBuffer = '';
-    let insideQuotes = false;
+    const rows = [];
+    let currentRow = [];
+    let currentCell = '';
+    let inQuotes = false;
 
-    // A. Stitch multi-line cells back together
-    rawLines.forEach(line => {
-        const quoteCount = (line.match(/"/g) || []).length;
-        if (!insideQuotes) {
-            if (quoteCount % 2 === 0) {
-                mergedRows.push(line);
-            } else {
-                currentBuffer = line;
-                insideQuotes = true;
-            }
-        } else {
-            currentBuffer += "\n" + line; // Restore the newline
-            if (quoteCount % 2 !== 0) {
-                mergedRows.push(currentBuffer);
-                insideQuotes = false;
-            }
+    for (let i = 0; i < csvText.length; i++) {
+        const c = csvText[i];
+        const nextC = csvText[i + 1];
+
+        // 1. Handle escaped quotes ("") inside a quoted string
+        if (c === '"' && inQuotes && nextC === '"') {
+            currentCell += '"';
+            i++; // Skip the second quote
+        } 
+        // 2. Toggle quote state on/off
+        else if (c === '"') {
+            inQuotes = !inQuotes;
+        } 
+        // 3. Comma outside of quotes means end of cell
+        else if (c === ',' && !inQuotes) {
+            currentRow.push(currentCell);
+            currentCell = '';
+        } 
+        // 4. Newline outside of quotes means end of row
+        else if ((c === '\n' || c === '\r') && !inQuotes) {
+            if (c === '\r' && nextC === '\n') i++; // Handle Windows \r\n
+            currentRow.push(currentCell);
+            rows.push(currentRow);
+            currentRow = [];
+            currentCell = '';
+        } 
+        // 5. Everything else is just regular text!
+        else {
+            currentCell += c;
         }
-    });
+    }
+    
+    // Catch the very last cell/row if the file doesn't end with a newline
+    if (currentCell || currentRow.length > 0) {
+        currentRow.push(currentCell);
+        rows.push(currentRow);
+    }
 
-    if (mergedRows.length < 2) return [];
+    if (rows.length < 2) return [];
 
-    // B. Get Headers (Clean)
-    const headers = mergedRows[0].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g).map(h => 
-        h.replace(/^"|"$/g, "").trim().toLowerCase()
-    );
-
-    // C. Map Rows
-    return mergedRows.slice(1).filter(r => r.trim() !== "").map(row => {
-        // This regex respects spaces inside sentences
-        const values = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
-        const rowData = {};
-        
-        headers.forEach((header, index) => {
-            let val = values[index] || "";
-            // Clean up CSV quotes but keep content structure
-            val = val.replace(/^"|"$/g, "").replace(/""/g, '"').trim();
-            rowData[header] = val;
+    // Map the cleaned rows to your headers
+    const headers = rows[0].map(h => h.trim().toLowerCase());
+    
+    return rows.slice(1)
+        .filter(r => r.join('').trim() !== '') // Skip totally empty rows
+        .map(row => {
+            const rowData = {};
+            headers.forEach((header, index) => {
+                rowData[header] = (row[index] || '').trim();
+            });
+            return rowData;
         });
-        return rowData;
-    });
 }
 
 // ---------------------------------------------------------
@@ -91,52 +100,108 @@ function buildNavMenu() {
     const overlayContent = document.getElementById('overlay-content');
 
     navList.innerHTML = '';
+    
+    // We will save the database element here so we can easily reset to it later
+    let databaseItemEl = null; 
 
+    // --- HELPER FUNCTION: Close overlay and reset visuals to Database ---
+    function closeOverlayAndReset() {
+        overlay.classList.remove('active');
+        window.location.hash = ''; // Clear hash
+        
+        // Wipe all active states and make circles empty
+        document.querySelectorAll('.nav-item').forEach(el => {
+            el.classList.remove('active');
+            const circle = el.querySelector('.circle');
+            if (circle) circle.textContent = '○';
+        });
+
+        // Turn 'database' back on
+        if (databaseItemEl) {
+            databaseItemEl.classList.add('active');
+            const dbCircle = databaseItemEl.querySelector('.circle');
+            if (dbCircle) dbCircle.textContent = '●';
+        }
+    }
+
+    // --- LOOP THROUGH NAV ITEMS ---
     navRows.forEach(item => {
-        // Skip empty rows
         if (!item.name) return;
 
+        const name = item.name.toLowerCase();
+        const type = (item.type || '').toLowerCase();
+        
         const li = document.createElement('li');
         li.className = 'nav-item';
-        li.innerHTML = `${item.name} <span class="circle">○</span>`;
 
+        // 1. VISUALS: Failsafe to guarantee 'database' gets a circle even if the sheet lags
+        const isToggleOrDb = (type === 'toggle' || name === 'database');
+
+        if (isToggleOrDb) {
+            li.innerHTML = `${item.name} <span class="circle">○</span>`;
+        } else {
+            li.innerHTML = `${item.name}`; // No circle for cart, filter, sort
+        }
+
+        // Save reference to the database list item for our reset function
+        if (name === 'database') {
+            databaseItemEl = li;
+        }
+
+        // 2. CLICK BEHAVIOR
         li.addEventListener('click', () => {
-            // Visual Update
-            document.querySelectorAll('.nav-item').forEach(el => {
-                el.classList.remove('active');
-                el.querySelector('.circle').textContent = '○';
-            });
-            li.classList.add('active');
-            li.querySelector('.circle').textContent = '●';
+            
+            if (isToggleOrDb) {
+                // If it's the database, just close everything
+                if (name === 'database') {
+                    closeOverlayAndReset(); 
+                } else {
+                    // Update visuals for clicked toggle
+                    document.querySelectorAll('.nav-item').forEach(el => {
+                        el.classList.remove('active');
+                        const circle = el.querySelector('.circle');
+                        if (circle) circle.textContent = '○';
+                    });
+                    
+                    li.classList.add('active');
+                    const myCircle = li.querySelector('.circle');
+                    if (myCircle) myCircle.textContent = '●';
 
-            // LOGIC: Check the "type" column from your sheet
-            const type = (item.type || '').toLowerCase();
-
-            if (type === 'database') {
-                // 1. DATABASE: Hide Overlay
-                overlay.classList.remove('active');
-                window.location.hash = ''; // Clear hash for home
-                
-            } else if (type === 'toggle' || type === 'text') {
-                // 2. TOGGLE/TEXT: Show Overlay
-                overlayContent.textContent = item.text;
-                overlay.classList.add('active');
-                document.getElementById('overlay-curtain').scrollTop = 0; // Reset scroll
-                if(item.url) window.location.hash = item.url;
-
+                    // Open the overlay for about, contact, etc.
+                    overlayContent.innerHTML = (item.text || '').replace(/\n/g, '<br>');
+                    overlay.classList.add('active');
+                    overlay.scrollTop = 0; 
+                    if(item.url) window.location.hash = item.url;
+                }
             } else {
-                // 3. OTHERS (e.g. "filter", "sort")
-                // Do nothing for now, or add filter logic here later
-                console.log("Clicked a filter or unknown type:", type);
+            
+                closeOverlayAndReset();
             }
         });
 
         navList.appendChild(li);
 
-        // Auto-select Home on Load
-        if ((item.type || '').toLowerCase() === 'database') {
+        // Auto-select "database" on initial Load
+        if (name === 'database') {
             li.classList.add('active');
-            li.querySelector('.circle').textContent = '●';
+            const circle = li.querySelector('.circle');
+            if (circle) circle.textContent = '●';
+        }
+    });
+
+    // Listens for a click specifically on the background curtain, not the text inside
+    document.addEventListener('click', (event) => {
+        // Only trigger if the pop-up is currently active/open
+        if (overlay.classList.contains('active')) {
+            
+            // Did they click outside the text zone?
+            const clickedOutsideText = !overlayContent.contains(event.target);
+            // Did they click outside the navigation menu? (We don't want to interfere with menu clicks)
+            const clickedOutsideNav = !navList.contains(event.target);
+
+            if (clickedOutsideText && clickedOutsideNav) {
+                closeOverlayAndReset();
+            }
         }
     });
 }
@@ -164,13 +229,9 @@ async function initDatabase() {
         const vTemplate = document.getElementById('visual-template');
         const iTemplate = document.getElementById('info-template');
 
-        // --- IMAGE COLUMN FINDER (The Fix) ---
-        // We look for ANY header that looks like an image column
         const headers = Object.keys(products[0] || {});
-        const imgKey = headers.find(h => h.includes('img') || h.includes('image') || h.includes('pic'));
+        const imgKey = headers.find(h => h.includes('thumbnail'));
         
-        console.log("Detected Image Header:", imgKey); // Check console if images still fail
-
         let totalImages = 0;
         let imagesLoaded = 0;
         
@@ -188,7 +249,9 @@ async function initDatabase() {
         // Pass 1: Count
         products.forEach(p => { if (p[imgKey]) totalImages++; });
         if (totalImages === 0) document.getElementById('loading-screen').style.display = 'none';
-
+        
+        const visualElements = []; // Store visual items here
+        
         // Pass 2: Build
         products.forEach((piece) => {
             const p = {
@@ -199,12 +262,12 @@ async function initDatabase() {
                 color: piece['color'],
                 size:  piece['size'],
                 price: piece['price'],
-                img:   getDirectImgLink(piece[imgKey]) // Use the detected key
+                img:   getDirectImgLink(piece[imgKey]) 
             };
 
             if (!p.id) return;
 
-            // Visual
+            // --- VISUAL SETUP ---
             const vClone = vTemplate.content.cloneNode(true);
             vClone.querySelector('.piece-id').textContent = `${p.id}.`;
             const imgEl = vClone.querySelector('.piece-img');
@@ -217,9 +280,13 @@ async function initDatabase() {
             } else {
                 imgEl.remove();
             }
-            visualGrid.appendChild(vClone);
+            
+            // Assign ID and save to array
+            const itemNode = vClone.firstElementChild;
+            itemNode.setAttribute('data-hover-id', p.id); // <-- Added ID for hover sync
+            visualElements.push(itemNode);
 
-            // Info
+            // --- INFO SETUP ---
             const iClone = iTemplate.content.cloneNode(true);
             iClone.querySelector('.p-id-name').textContent = `${p.id}. ${p.name}`;
             iClone.querySelector('.p-price').textContent = p.price;
@@ -242,12 +309,126 @@ async function initDatabase() {
             btn.setAttribute('data-item-url', window.location.href.split('#')[0]);
             btn.setAttribute('data-item-image', p.img);
 
+            // Assign ID to info item before appending
+            const infoItemNode = iClone.firstElementChild;
+            if (infoItemNode) {
+                infoItemNode.setAttribute('data-hover-id', p.id); // <-- Added ID for hover sync
+            }
             infoGrid.appendChild(iClone);
         });
+
+        // ---------------------------------------------------------
+        // --- RESPONSIVE JOURNAL LAYOUT LOGIC ---
+        // ---------------------------------------------------------
+        const MIN_COL_WIDTH = 400; // Minimum pixel width per column
+        const MAX_COLS = 3;        // Base maximum number of columns
+
+        function layoutVisualGrid() {
+            visualGrid.innerHTML = ''; // Clear out the grid to start fresh
+            
+            // 1. Calculate how many columns we can fit
+            const gridWidth = visualGrid.offsetWidth || window.innerWidth / 2;
+            let numCols = Math.floor(gridWidth / MIN_COL_WIDTH);
+            
+            // Enforce our limits
+            if (numCols > MAX_COLS) numCols = MAX_COLS;
+            if (numCols < 1) numCols = 1;
+
+            // 2. Build the physical column containers
+            const columns = [];
+            for (let i = 0; i < numCols; i++) {
+                const col = document.createElement('div');
+                col.className = 'visual-scroll-column';
+                visualGrid.appendChild(col);
+                columns.push(col);
+            }
+
+            // 3. Deal the items vertically (Journal Style)
+            const itemsPerCol = Math.ceil(visualElements.length / numCols);
+
+            visualElements.forEach((el, index) => {
+                const targetColIndex = Math.floor(index / itemsPerCol);
+                const safeColIndex = Math.min(targetColIndex, numCols - 1); 
+                columns[safeColIndex].appendChild(el);
+            });
+        }
+
+        // Run it immediately on load
+        layoutVisualGrid();
+
+        // Listen for window resizing and automatically recalculate the columns
+        window.addEventListener('resize', layoutVisualGrid);
 
     } catch (err) {
         console.error("Database connection failed", err);
     }
 }
 
+// Kick off the site
 initSite();
+
+// ---------------------------------------------------------
+// 6. CROSS-GRID RAW AUTO-SCROLL 
+// ---------------------------------------------------------
+
+document.addEventListener('mouseover', (e) => {
+    // --- NEW: THE FOCUS LOCK ---
+    // If an item has been clicked and we are in focus mode, completely ignore all hovers!
+    if (document.body.classList.contains('item-is-clicked')) return;
+
+    const target = e.target.closest('[data-hover-id]');
+    if (!target) return; 
+
+    const id = target.getAttribute('data-hover-id');
+    const twins = document.querySelectorAll(`[data-hover-id="${id}"]`);
+
+    twins.forEach(twin => {
+        if (twin !== target) {
+            const container = twin.closest('.visual-scroll-column') || twin.closest('#info-grid');
+            
+            if (container) {
+                const targetScrollTop = twin.offsetTop - (container.clientHeight / 2) + (twin.clientHeight / 2);
+                
+                container.scrollTo({
+                    top: targetScrollTop,
+                    behavior: 'smooth' 
+                });
+            }
+        }
+    });
+});
+
+// ---------------------------------------------------------
+// 7. CLICK-TO-FOCUS & BLUR LOGIC
+// ---------------------------------------------------------
+
+document.addEventListener('click', (e) => {
+    
+    // --- 1. IF ALREADY FOCUSED: ANY CLICK EXITS FOCUS MODE ---
+    if (document.body.classList.contains('item-is-clicked')) {
+        // Remove the global blur state
+        document.body.classList.remove('item-is-clicked');
+        
+        // Remove the sharpness from the twins
+        document.querySelectorAll('.selected-twin').forEach(el => {
+            el.classList.remove('selected-twin');
+        });
+        
+        return; // STOP HERE! This prevents jumping straight to a new item.
+    }
+
+    // --- 2. IF NOT FOCUSED: CHECK IF THEY CLICKED AN ITEM ---
+    const targetItem = e.target.closest('[data-hover-id]');
+
+    if (targetItem) {
+        const id = targetItem.getAttribute('data-hover-id');
+        
+        // Turn on the global blur state and lock the hover
+        document.body.classList.add('item-is-clicked');
+        
+        // Make the clicked item and its twin perfectly sharp
+        document.querySelectorAll(`[data-hover-id="${id}"]`).forEach(el => {
+            el.classList.add('selected-twin');
+        });
+    }
+});

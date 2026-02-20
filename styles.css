@@ -18,10 +18,43 @@ html, body {
     height: 100vh;
     width: 100vw;
 }
-/*===========================
-    00-1_GLOBAL SETTINGS
-===========================*/
 
+/* SCROLLBARS */
+::-webkit-scrollbar {
+    display: none; 
+}
+* {
+    scrollbar-width: none;
+}
+* {
+    -ms-overflow-style: none;
+}
+
+/* ITEM click BLUR */
+
+[data-hover-id] {
+    transition: filter 0.4s ease, opacity 0.4s ease;
+    cursor: pointer; /* Turns the mouse into a hand so they know it's clickable */
+}
+
+/* 2. When an item is clicked, dim and blur ALL items by default */
+body.item-is-clicked [data-hover-id] {
+    filter: blur(5px);
+    opacity: 0.3;
+}
+
+/* 3. EXCEPT the specific item (and its twin) that was clicked */
+body.item-is-clicked [data-hover-id].selected-twin {
+    filter: blur(0px);
+    opacity: 1;
+}
+/* 4. Completely disable manual scrolling while in Focus Mode */
+body.item-is-clicked .visual-scroll-column,
+body.item-is-clicked #info-grid {
+    overflow: hidden; 
+}
+
+/* LOADING SCREEN */
 #loading-screen {
     position: fixed;
     top: 0;
@@ -55,11 +88,18 @@ html, body {
 
 .side-header { 
     display: flex;
-    width: 20%; 
+    width: 15%; 
     height: 100%;
     padding: 20px;
     box-sizing: border-box;
     justify-content: right;
+}
+.brand-logo {
+    position: fixed;
+    bottom: 20px; /* Distance from the bottom of the screen */
+    right: 20px;   /* Distance from the left side */
+    z-index: 100; /* Guarantees it floats ON TOP of the scrolling images */
+    margin: 0;    /* Removes any default browser spacing */
 }
 .nav-item {
     cursor: pointer;
@@ -70,8 +110,9 @@ html, body {
     text-transform: lowercase;
 }
 
+
 .circle {
-    font-size: 14px;
+    font-size: 20px;
     margin-left: 10px;
 }
 
@@ -97,14 +138,26 @@ html, body {
 ===========================*/
 
 .visual-zone { 
-    width: 60%;
+    width: 65%;
     height: 100%;
-    padding:0px 5px;
+    padding: 0px 5px;
     overflow-y: auto;
 }
 #visual-grid {
-    column-count: 3;
-    column-gap: 2px;
+    display: flex;
+    gap: 20px; /* Space between your columns */
+    height: 100vh; /* Locks the grid to the height of the screen */
+    overflow: hidden; /* Prevents the whole page from scrolling */
+}
+
+/* The individual columns get the scrollbars */
+.visual-scroll-column {
+    flex: 1; /* Makes columns equal width */
+    display: flex;
+    flex-direction: column;
+    gap: 40px; /* Space between images vertically */
+    height: 100%;
+    overflow-y: auto; /* This is the magic line that makes them scroll! */
 }
 
 .piece-unit {
@@ -123,6 +176,19 @@ html, body {
 
 .piece-id { font-weight: bold; margin-bottom: 5px; }
 
+/* 1. Add blank space to the top and bottom of your scrollable zones */
+.visual-scroll-column, 
+#info-grid {
+    position: relative;
+    height: 100vh;
+    overflow-y: auto;
+    -ms-overflow-style: none;
+    scrollbar-width: none;  
+    /* 2. Enable that satisfying, smooth deceleration */
+    scroll-behavior: smooth; 
+}
+
+
 /*===========================
     01_2_INFO COLUMN
 ===========================*/
@@ -132,16 +198,21 @@ html, body {
     height: 100%;
     overflow: hidden; /* CRITICAL: The parent does NOT scroll */
     position: relative;
+    
 }
 .info-scroll-wrapper {
     height: 100%;
     width: 100%;
     overflow-y: auto; /* The products scroll inside here */
     padding-bottom: 50px;
+
 }
 
 #info-grid {
-    column-count: 1;
+    /* 1. Force a strict single vertical column */
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap; /* This stops the weird multi-column wrapping! */
 }
 .piece-header {
     display: flex;
@@ -149,6 +220,7 @@ html, body {
     align-items: baseline;
     font-weight: bold;
     margin-bottom: 4px;
+    
 }
 
 .tag-list {
@@ -189,8 +261,8 @@ html, body {
     transform: translate(-50%, -50%); /* Perfect Center */
     
     width: 100%; /* Takes up 80% of column width */
-    max-height: 70%; /* Won't touch top/bottom edges */
-    background: #ffffffca;
+    height: 100%; /* Won't touch top/bottom edges */
+    background-color: #ffffffe5;
     z-index: 50;
     
     /* Aesthetics */
@@ -215,4 +287,3 @@ html, body {
     text-transform: none;
 
 }
-
