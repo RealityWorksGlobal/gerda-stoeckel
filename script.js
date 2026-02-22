@@ -295,34 +295,32 @@ async function initDatabase() {
 
         products.forEach((piece) => {
             const p = {
-                id:    piece['id'],
-                name:  piece['name'],
-                pleat: piece['pleat'],
-                type:  piece['type'],
-                style: piece['style'],
-                color: piece['color'],
-                size:  piece['size'],
-                price: piece['price'],
+                id:      piece['id'],
+                name:    piece['name'],
+                pleat:   piece['pleat'],
+                type:    piece['type'],
+                style:   piece['style'],
+                color:   piece['color'],
+                size:    piece['size'],
+                price:   piece['price'],
+                brand:   piece['brand'], // Added brand mapping
                 material: piece['material'] || '',
                 measurements: piece['measurements'] || '',
-                sold:  piece['sold'], 
-                img:   getDirectImgLink(piece[imgKey]),
+                sold:    piece['sold'], 
+                img:     getDirectImgLink(piece[imgKey]),
                 carousel: (piece['carousel'] || '').split(',').map(l => getDirectImgLink(l.trim())).filter(Boolean)
             };
 
             if (!p.id) return;
 
-            // 1. Extract, split by comma, and format tags
             const itemPleats = p.pleat.split(',').map(t => t.trim()).filter(t => t);
             const itemTypes = p.type.split(',').map(t => t.trim()).filter(t => t);
             const itemSizes = parseSizes(p.size);
 
-            // Add to our Sets for the Nav menu
             itemPleats.forEach(t => uniquePleats.add(t));
             itemTypes.forEach(t => uniqueTypes.add(t));
             itemSizes.forEach(t => uniqueSizes.add(t));
             
-            // Save the slugified versions to our global array for the filtering engine
             archiveData.push({
                 id: p.id,
                 pleats: itemPleats.map(slugify),
@@ -347,7 +345,7 @@ async function initDatabase() {
             }
 
             if (isSold) {
-                vItemNode.classList.add('is-sold'); // This triggers the CSS blur
+                vItemNode.classList.add('is-sold');
             }
 
             vItemNode.setAttribute('data-hover-id', p.id); 
@@ -358,62 +356,55 @@ async function initDatabase() {
             const iClone = iTemplate.content.cloneNode(true);
             const iItemNode = iClone.firstElementChild;
 
-            // COMBINATION: "ID. PLEAT TYPE" (e.g., "01. ACCORDION SKIRT")
             const combinedTitle = [p.pleat, p.type].filter(Boolean).join(' ');
-            iItemNode.querySelector('.p-id-name').textContent = `${p.id}. ${combinedTitle.toUpperCase()}`;
-
-            // BRAND: New line (Make sure you have a class for this or repurpose an existing one)
-            // If you don't have a .p-brand class in HTML, we can inject it into the title or a tag
+            const fullNameWithID = `${p.id}. ${combinedTitle.toUpperCase()}`;
+            
+            iItemNode.querySelector('.p-id-name').textContent = fullNameWithID;
+            
             if (p.brand) {
                 const brandSpan = document.createElement('div');
-                brandSpan.className = 'p-brand'; // You can style this in CSS
+                brandSpan.className = 'p-brand';
                 brandSpan.textContent = p.brand.toUpperCase();
                 iItemNode.querySelector('.piece-header').appendChild(brandSpan);
             }
 
             iItemNode.querySelector('.p-price').textContent = p.price;
             iItemNode.querySelector('.p-size').textContent = p.size;
-            
 
             const measContainer = iItemNode.querySelector('.p-measurements'); 
-                if (measContainer) {
-                    if (p.measurements) {
-                        // Convert newlines from Sheet to HTML breaks
-                        measContainer.innerHTML = p.measurements.replace(/\n/g, '<br>');
-                        measContainer.style.display = 'block';
-                    } else {
-                        measContainer.style.display = 'none'; // Hide if empty
-                    }
+            if (measContainer) {
+                if (p.measurements) {
+                    measContainer.innerHTML = p.measurements.replace(/\n/g, '<br>');
+                    measContainer.style.display = 'block';
+                } else {
+                    measContainer.style.display = 'none';
                 }
-                if (p.material) {
+            }
+            if (p.material) {
                 const materialEl = document.createElement('span');
                 materialEl.className = 'p-material';
                 materialEl.textContent = p.material.toLowerCase(); 
-                
-                // Insert it immediately after the measurements container
                 if (measContainer) {
                     measContainer.insertAdjacentElement('afterend', materialEl);
                 }
             }
 
             // --- 3. SNIPCART BUTTON LOGIC ---
-            const btn = iItemNode.querySelector('.add-btn');
-            
+            const btn = iItemNode.querySelector('.add-btn'); // Only declared once now!
+
             if (isSold) {
                 iItemNode.classList.add('is-sold');
             } else {
-                // If AVAILABLE: Setup Snipcart
                 btn.className = 'add-btn snipcart-add-item'; 
                 btn.setAttribute('data-item-id', p.id);
-                btn.setAttribute('data-item-name', p.name);
+                btn.setAttribute('data-item-name', fullNameWithID);
                 
-                let cleanPrice = p.price ? parseFloat(p.price.toString().replace(/[^0-9.]/g, '')) : 0;
-                let finalPrice = isNaN(cleanPrice) ? '0.00' : cleanPrice.toFixed(2);
+                let cleanPrice = p.price ? p.price.toString().replace(/[^0-9.]/g, '') : "0.00";
                 
-                btn.setAttribute('data-item-price', finalPrice);
+                btn.setAttribute('data-item-price', cleanPrice);
                 btn.setAttribute('data-item-url', window.location.origin + window.location.pathname);
                 btn.setAttribute('data-item-image', p.img);
-                btn.setAttribute('data-item-description', `${p.style} ${p.type}`);
+                btn.setAttribute('data-item-max-quantity', '1'); 
             }
 
             iItemNode.setAttribute('data-hover-id', p.id);

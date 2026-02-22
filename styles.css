@@ -6,6 +6,10 @@
     --fave-text-shadow: #0000009a 0px 0 3px;
     --item-blur: blur(25px);
     --item-blur-opacity: 0.6;
+    --basic-font-size: 1rem;
+    --big-font-size: 1.2rem;
+    --small-font-size: 0.85rem;
+
 }
 
 html, body {
@@ -19,6 +23,8 @@ html, body {
     font-family: 'Courier New', Courier, monospace;
     text-transform: uppercase;
     cursor: crosshair;
+    -webkit-user-select: none; /* Safari */
+    user-select: none;         /* Standard */
 }
 
 ::-webkit-scrollbar {
@@ -29,6 +35,18 @@ html, body {
     display: flex;
     height: 100vh;
     width: 100vw;
+}
+
+
+#overlay-content {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+#snipcart,
+.snipcart-modal {
+    -webkit-user-select: text !important;
+    user-select: text !important;
 }
 
 /*CURSOR*/
@@ -44,7 +62,7 @@ html, body {
 
 
 /*===========================
-    01_LOADING SCREEN
+    01_LOADING SCREEN + MOBILE BLOCKER
 ===========================*/
 #loading-screen {
     position: fixed;
@@ -58,7 +76,7 @@ html, body {
 }
 
 .loader-text {
-    font-size: 14px;
+    font-size: var(--basic-font-size);
     letter-spacing: 2px;
     animation: LoadingPulse 2s infinite ease-in-out;
 }
@@ -67,6 +85,58 @@ html, body {
     0% {opacity: 0.2;}
     50% {opacity: 1;}
     100% {opacity: 0.2;}
+}
+
+/* Hide the blocker by default on desktop */
+#mobile-blocker {
+    display: none;
+}
+
+@media only screen and (max-width: 1024px) {
+    /* 1. Hide the actual website content */
+    body > *:not(#mobile-blocker) {
+        display: none !important;
+    }
+
+    /* 2. Show the blocker as a full-screen overlay */
+    #mobile-blocker {
+        display: flex !important;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: #fff;
+        z-index: 1000000;
+        justify-content: center;
+        align-items: center;
+        font-family: 'Courier New', Courier, monospace;
+        text-align: center;
+    }
+
+    /* 3. Style the "loading" text and spinner */
+    .blocker-content p {
+        text-transform: lowercase;
+        font-size: 14px;
+        margin-top: 20px;
+        color: #000;
+    }
+
+    /* Simple brutalist loader */
+    .loader {
+        width: 40px;
+        height: 40px;
+        border: 2px solid #000;
+        border-top: 2px solid transparent;
+        border-radius: 50%;
+        margin: 0 auto;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
 }
 
 /*===========================
@@ -124,7 +194,7 @@ html, body {
 }
 
 .circle {
-    font-size: 20px;
+    font-size: var(--basic-font-size);
     margin-left: 5px;
 }
 
@@ -159,7 +229,7 @@ html, body {
 
 .filter-tag {
     text-transform: lowercase;
-    font-size: 0.85rem;
+    font-size: var(--small-font-size);
     cursor: pointer;
     margin: 2px 0;
     opacity: 0.6;
@@ -178,7 +248,7 @@ html, body {
     width: 100%;
     text-align: right;
     text-transform: lowercase;
-    font-size: 0.8rem;
+    font-size: var(--small-font-size);
     cursor: pointer;
     margin-top: 2px;
     margin-bottom: 15px;
@@ -218,7 +288,6 @@ html, body {
     flex: 1; 
     display: flex;
     flex-direction: column;
-    gap: 40px; 
     height: 100%;
 }
 
@@ -285,10 +354,10 @@ html, body {
 }
 
 .piece-id { font-weight: bold; margin-bottom: 5px; }
-.p-brand { display: block; font-size: 0.9rem; margin-top: 4px; opacity: 0.8; }
-.p-material {display: block; font-size: 0.85rem; line-height: 1.4; text-transform: lowercase; color: #000; margin-top: 2px; }
-.p-measurements { display: block; font-size: 0.85rem; line-height: 1.4; text-transform: lowercase; color: #000; margin-bottom: 2px; }
-.p-size { display: block; margin-top: 5px; font-size: 0.85rem; line-height: 1.4; text-transform: uppercase; color: #000; font-weight: bold; }
+.p-brand { display: block; font-size: var(--small-font-size); margin-top: 4px; opacity: 0.8; }
+.p-material {display: block; font-size: var(--small-font-size); line-height: 1.4; text-transform: lowercase; color: #000; margin-top: 2px; }
+.p-measurements { display: block; font-size: var(--small-font-size);; line-height: 1.4; text-transform: lowercase; color: #000; margin-bottom: 2px; }
+.p-size { display: block; margin-top: 5px; font-size: var(--small-font-size);; line-height: 1.4; text-transform: uppercase; color: #000; font-weight: bold; }
 
 /* The Add Button */
 .info-zone .add-btn {
@@ -431,8 +500,8 @@ body.item-is-clicked #info-grid {
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
     font-family: 'Courier New', monospace;
-    font-size: 1.3rem; 
-    font-weight: bold;
+    font-size: var(--big-font-size);
+    font-weight: 550;
     color: rgba(255, 255, 255, 0.4);
     z-index: 10;
     pointer-events: none !important;
@@ -456,7 +525,7 @@ body.item-is-clicked #info-grid {
 .add-btn.in-cart::after {
     filter: none !important;
     opacity: 1;
-    font-size: 0.7rem;
+    font-size: var(--small-font-size);
     vertical-align: middle;
 }
 
@@ -485,7 +554,7 @@ body.item-is-clicked #info-grid {
 
 #overlay-content {
     white-space: pre-wrap; 
-    font-size: 13px;       
+    font-size: var(--small-font-size);
     line-height: 1.4;
     text-transform: none;
     padding-top: 10px;
@@ -493,75 +562,415 @@ body.item-is-clicked #info-grid {
 
 .view-state { display: none; }
 .view-state.active { display: block; }
-#content-text { font-size: 13px; padding: 10px; margin: 0; }
+#content-text { font-size: var(--small-font-size); padding: 10px; margin: 0; }
 
 /* =========================================
-   07_SNIPCART OVERRIDE
+    07-1_the cart
 ========================================= */
+
+/* 1. BACKDROP & POSITIONING */
 .snipcart-modal {
     position: fixed !important;
     top: 0 !important;
-    right: 15vw !important; 
+    right: 15% !important; 
     width: 20vw !important; 
     height: 100vh !important;
-    background-color: rgba(255, 255, 255, 0.2) !important;
-    backdrop-filter: blur(10px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
+    background-color: rgb(255, 255, 255) !important; 
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    z-index: 9999 !important;
+    font-family: 'Courier New', Courier, monospace !important;
 }
-
+#snipcart *,
+.snipcart-modal,
+.snipcart-modal__container {
+    animation: none !important;
+    transition: none !important;
+}
+/* 2. LAYOUT ENGINE (Fixing the 0px height issue) */
 .snipcart-modal__container,
 .snipcart-cart-header,
-.snipcart-item-line,
-.snipcart-cart__footer,
-.snipcart-cart-summary,
-.snipcart-discount-box,
-.snipcart-layout {
-    background: transparent !important;
+#snipcart * {
+    margin: 0 !important;
+    padding: 1px !important;
     border: none !important;
     box-shadow: none !important;
-    border-radius: 0 !important;
-    transition: none !important;
-    animation: none !important;
-    transform: none !important;
-}
-
-.snipcart-item-line__media { display: none !important; }
-
-#snipcart * {
-    font-family: 'Courier New', Courier, monospace !important;
-    text-transform: uppercase !important;
-    border-radius: 0 !important; 
     background: transparent !important;
 }
 
-.snipcart-cart-header__title,
-.snipcart-item-line__title,
-.snipcart-item-line__price,
-.snipcart-summary-fees__amount,
-.snipcart-cart-summary__title {
+.snipcart-layout__content {
+    width:100% !important;
+}
+
+/* CART TITLE */
+.snipcart-cart-header::before {
+    content: "CART";
+    font-family: 'Courier New', Courier, monospace !important;
+    font-size: 14px;
+    font-weight: bold;
+    color: #000;
+    display: block;
+    padding: 5px 5px;
+    margin-top: 5px;
+    margin-bottom: 20px;
+}
+
+/* ITEM LIST */
+.snipcart-item-line {
+    display: flex !important;
+    flex-direction: column !important;
+    margin-bottom: 30px !important;
+    width: 100% !important;
+}
+
+.snipcart-item-line__title {
+    font-family: 'Courier New', Courier, monospace !important;
+    font-size: var(--basic-font-size) !important;
+    text-align: left !important;
+    display: block !important;
     color: #000 !important;
+}
+
+/* ITEM PRICE */
+.snipcart-item-quantity {
+    width: 100%;
+}
+.snipcart-item-quantity__total-price {
+    font-family: 'Courier New', Courier, monospace !important;
+    text-align: left !important;
+}
+/* TRASH ICON */
+.snipcart-button-icon {
+    transform: scale(0.8);
+}
+
+/* 4. FOOTER & CHECKOUT */
+.snipcart-cart__footer {
+    display: flex !important;
+    flex-direction: column !important;
+}
+.snipcart-cart__footer-col {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    width: 100% !important;
+}
+.snipcart-summary-fees.snipcart-cart-summary-fees--reverse {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+    margin-top: 50px !important;
+}
+.snipcart-summary-fees.snipcart-cart-summary-fees--reverse > .snipcart-summary-fees {
+    order: 1 !important;
+    width: 100% !important;
+    margin-bottom: 10px !important;
+}
+.snipcart-summary-fees__notice {
+    order: 2 !important;
+    text-transform: lowercase !important;
+    text-align: left !important;
+    width: 100% !important;
+    font-size: 0.7rem !important;
+    display: block !important; 
+}
+.snipcart-summary-fees__item.snipcart-summary-fees__total {
+    display: flex !important;
+    flex-direction: column !important; /* Stacks Title and Amount vertically */
+    align-items: flex-start !important; /* Flushes everything to the left */
+    width: 100% !important;
+    padding: 0 !important;
+}
+.snipcart-summary-fees__title {
+    font-family: 'Courier New', Courier, monospace !important;
+    font-weight: bold !important;
+    font-size: var(--big-font-size)!important;
+}
+
+.snipcart-summary-fees__amount {
+    font-family: 'Courier New', Courier, monospace !important;
+    color: #000 !important;
+    font-size: var(--big-font-size) !important;
+}
+
+/*CHECKOUT*/
+#snipcart .snipcart-base-button.snipcart-button-primary {
+    display: flex !important;
+    align-items: center !important;
+    text-transform: uppercase !important;
+    color: #000 !important;
+    background: transparent !important;
+    padding: 0 !important;
+    width: fit-content !important;
+    margin-top: 30px !important;
+    transition: all 0.3s ease-in-out;
+}
+#snipcart .snipcart-base-button.snipcart-button-primary:hover{
+    text-shadow: var(--fave-text-shadow);
+}
+.snipcart-base-button__label {
+    font-family: 'Courier New', Courier, monospace !important;
+    font-weight: bold !important;
+    font-size: var(--big-font-size) !important;
+}
+
+/*EMPTY CART*/
+.snipcart-empty-cart {
+    width: 100% !important;
+    height: 100% !important;
+}
+.snipcart-empty-cart__title {
+    display: flex !important;
+    align-items: flex-start !important; /* This forces the text to the top */
+    justify-content: flex-start !important; /* This forces the text to the left */
+    font-family: 'Courier New', Courier, monospace !important;
+    color: #000 !important;
+    font-size: var(--small-font-size) !important;
+    height: 100% !important;
+    width: 100% !important;
+    text-transform: lowercase;
+}
+
+
+/* =========================================
+    07-1_THE CHECKOUT
+========================================= */
+
+.snipcart__font--subtitle,
+.snipcart__box--badge {
+    font-family: 'Courier New', Courier, monospace !important;
+    color: #000 !important;
+    font-size: var(--big-font-size) !important;
     font-weight: bold !important;
 }
 
-.snipcart-base-button {
-    background-color: #000 !important;
-    color: #fff !important;
-    border: none !important;
-    box-shadow: none !important;
+/* 1. Break the 2-column layout into a single vertical stack */
+.snipcart-layout__cols {
+    display: flex;
+    flex-direction: column !important;
 }
 
-.snipcart-cart-header__close-button,
-.snipcart-empty-cart__button,
-.snipcart-cart-header__options {
+/* 2. Push the Order Summary to the TOP (Order 1) */
+.snipcart-layout__col:not(.snipcart-layout__col--large) {
+    order: 1 !important;
+    width: 100% !important;
+    margin-bottom: 50px !important;
+}
+
+/* Un-stick the summary so it scrolls naturally */
+.snipcart-cart-summary {
+    position: relative !important;
+    top: auto !important;
+}
+
+/* 3. Push the Billing/Payment forms to the BOTTOM (Order 2) */
+.snipcart-layout__col--large {
+    order: 2 !important;
+    width: 100% !important;
+}
+
+/* 4. Make the writing fields visible & identical (Textarea lockdown added) */
+#snipcart .snipcart-input__input,
+#snipcart .snipcart-textbox,
+#snipcart .snipcart-form__select,
+#snipcart textarea {
+    display: block !important;
+    background-color: transparent !important;
+    border-radius: 0 !important; 
+    font-family: 'Courier New', Courier, monospace !important;
+    font-size: 13px !important;
+    color: #000 !important;
+    margin-top: 5px !important;
+    width: 100% !important;
+    box-sizing: border-box !important; 
+    height: 40px !important; 
+    min-height: 40px !important;
+    max-height: 40px !important;
+    line-height: 40px !important;
+    resize: none !important; /* Stops the Street Address box from expanding */
+    background: radial-gradient(#0000002b, #ffffff00) !important;
+    align-items: center !important;
+}
+/* Target the specific Dropdown/Typeahead wrappers */
+#snipcart .snipcart-typeahead__input,
+#snipcart .snipcart-form__select-wrapper,
+#snipcart .snipcart-form__select-wrapper select {
+    height: 40px !important;
+    min-height: 40px !important;
+    max-height: 40px !important;
+    display: flex !important;
+    align-items: center !important; /* Forces the vertical center in the wrapper */
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* Force the actual text inside the dropdown to center */
+#snipcart .snipcart-form__select-wrapper select,
+#snipcart .snipcart-typeahead__input input {
+    line-height: 40px !important;
+    height: 40px !important;
+    padding: 0 10px !important;
+    background: radial-gradient(#0000002b, #ffffff00) !important;
+}
+
+/* Fix the overlapping arrow icon in the dropdown */
+#snipcart .snipcart-form__select-wrapper .snipcart__icon {
+    top: 50% !important;
+    transform: translateY(-50%) !important; /* Centers the chevron arrow vertically */
+    right: 10px !important;
+}
+
+/* Style the dropdown suggestions list */
+#snipcart .snipcart-typeahead__suggestions {
+    background-color: #ffffffe8 !important; /* Make it solid so you can't see through it */
+    border-top: none !important; /* Connects it to the input box above */
+    z-index: 9999 !important; /* Ensure it stays above all other elements */
+    font-family: 'Courier New', Courier, monospace !important;
+}
+
+/* Style the individual items in the list */
+#snipcart .snipcart-typeahead__suggestion {
+    padding: 10px !important;
+    color: #000 !important;
+    background-color: #ffffff29 !important;
+    cursor: pointer !important;
+    text-transform: lowercase !important;
+    font-size: 12px !important;
+}
+
+/* Highlight the item when hovering or navigating with keys */
+#snipcart .snipcart-typeahead__suggestion--active,
+#snipcart .snipcart-typeahead__suggestion:hover {
+    background: radial-gradient(#0000002b, #ffffff00) !important;
+    color: #000000 !important;
+}
+
+/* 5. Kill the browser's default light-blue Autofill background */
+#snipcart input:-webkit-autofill,
+#snipcart textarea:-webkit-autofill,
+#snipcart select:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 1000px white inset !important;
+    -webkit-text-fill-color: #000 !important;
+}
+
+/* 6. Add a shadow when they click into ANY field (Kept your 5px glow preference!) */
+#snipcart .snipcart-input__input:focus,
+#snipcart .snipcart-textbox:focus,
+#snipcart .snipcart-form__select:focus,
+#snipcart textarea:focus {
+    box-shadow: 0px 0px 5px #000 !important;
+    outline: none !important;
+}
+
+/* Fix the dropdown arrows for Country/Province */
+#snipcart .snipcart-form__select {
+    appearance: auto !important;
+    -webkit-appearance: auto !important;
+}
+
+/* 7. Style the Form Labels (Full Name, Email, etc.) */
+.snipcart-form__label {
+    font-family: 'Courier New', Courier, monospace !important;
+    font-size: 11px !important;
+    color: #000 !important;
+    text-transform: uppercase !important;
+}
+
+/* 8. Hide "2 PAYMENT" (and any future steps) until they are active */
+#snipcart .snipcart-checkout-step--disabled,
+#snipcart .snipcart-checkout-step--inactive {
     display: none !important;
 }
 
-.snipcart-base-button:hover { background-color: #333 !important; }
+/* 9. edit button */
 
-.snipcart-item-line__product {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 10px;
+/* 1. Force the form footer to spread the buttons apart */
+#snipcart .snipcart-form__footer {
+    display: flex !important;
+    justify-content: space-between !important;
+    flex-direction: row-reverse !important; /* Puts Primary button on right, Back link on left */
+    align-items: baseline !important;
+    margin-top: 40px !important;
+    width: 100% !important;
+}
+
+/* 2. Style the resurrected Back link */
+#snipcart .snipcart-button-link {
+    display: block !important;
+    color: #000 !important;
+    font-family: 'Courier New', Courier, monospace !important;
+    font-size: 13px !important;
+    text-transform: lowercase !important;
+    text-decoration: underline !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    cursor: pointer !important;
+}
+
+#snipcart .snipcart-button-link:hover {
+    text-shadow: 0 0 5px #000 !important;
+}
+
+/* =========================================
+    07-2_THE BILLING
+========================================= */
+
+
+/* Fix the completed Billing summary squish */
+#snipcart .snipcart-checkout-step__cols {
+    display: flex;
+    flex-direction: column !important; /* Stack them vertically instead of a row! */
+    gap: 20px !important; /* Adds breathing room between the two blocks */
+    text-transform: lowercase;
+}
+
+/* Let the inner blocks take up the full width of the sidebar */
+#snipcart .snipcart-checkout-step__col {
+    width: 100% !important;
+}
+
+.snipcart-form__footer {
+    justify-content: flex-start !important;
+}
+
+
+/* =========================================
+    07-X_THE NUKES
+========================================= */
+
+/* 5. NUKE UI ELEMENTS */
+.snipcart-cart-header__icon,
+.snipcart-cart-header__count,
+.snipcart-item-line__media,
+.snipcart-cart-header__close-button,
+.snipcart-cart-header__title,
+.snipcart-test-mode,
+.snipcart-item-quantity__label,
+.snipcart-item-quantity__quantity,
+.snipcart-item-custom-fields,
+.snipcart-featured-payment-methods,
+.snipcart-base-button__icon,
+.snipcart-test-banner__message,
+.snipcart-cart-header,
+.snipcart-cart-summary-item__quantity {
+    display: none !important;
+}
+
+#snipcart svg {
+    filter: grayscale(100%) brightness(0) !important;
+}
+/* KILL ALL SNIPCART ANIMATIONS & TRANSITIONS */
+#snipcart *,
+.snipcart-modal,
+.snipcart-modal__container {
+    animation: none !important;
+    transition: none !important;
 }
 
 /* =========================================
