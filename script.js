@@ -360,18 +360,24 @@ async function initDatabase() {
             const fullNameWithID = `${p.id}. ${combinedTitle.toUpperCase()}`;
             
             iItemNode.querySelector('.p-id-name').textContent = fullNameWithID;
-            
-            if (p.brand) {
-                const brandSpan = document.createElement('div');
-                brandSpan.className = 'p-brand';
-                brandSpan.textContent = p.brand.toUpperCase();
-                iItemNode.querySelector('.piece-header').appendChild(brandSpan);
-            }
-
             iItemNode.querySelector('.p-price').textContent = p.price;
             iItemNode.querySelector('.p-size').textContent = p.size;
 
             const measContainer = iItemNode.querySelector('.p-measurements'); 
+
+            // 1. BRAND LOGIC
+            if (p.brand) {
+                const brandSpan = document.createElement('div');
+                brandSpan.className = 'p-brand';
+                brandSpan.textContent = p.brand.toUpperCase();
+                
+                // Insert it right BEFORE the measurements container starts
+                if (measContainer) {
+                    measContainer.insertAdjacentElement('beforebegin', brandSpan);
+                }
+            }
+
+            // 2. MEASUREMENTS LOGIC
             if (measContainer) {
                 if (p.measurements) {
                     measContainer.innerHTML = p.measurements.replace(/\n/g, '<br>');
@@ -380,10 +386,14 @@ async function initDatabase() {
                     measContainer.style.display = 'none';
                 }
             }
+
+            // 3. MATERIAL LOGIC
             if (p.material) {
                 const materialEl = document.createElement('span');
                 materialEl.className = 'p-material';
                 materialEl.textContent = p.material.toLowerCase(); 
+                
+                // Insert it right AFTER the measurements container
                 if (measContainer) {
                     measContainer.insertAdjacentElement('afterend', materialEl);
                 }

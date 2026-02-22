@@ -357,6 +357,7 @@ html, body {
 .p-brand { display: block; font-size: var(--small-font-size); margin-top: 4px; opacity: 0.8; }
 .p-material {display: block; font-size: var(--small-font-size); line-height: 1.4; text-transform: lowercase; color: #000; margin-top: 2px; }
 .p-measurements { display: block; font-size: var(--small-font-size);; line-height: 1.4; text-transform: lowercase; color: #000; margin-bottom: 2px; }
+.p-brand { display: block; font-size: var(--small-font-size);; line-height: 1.4; text-transform: lowercase; color: #000; margin-bottom: 2px; }
 .p-size { display: block; margin-top: 5px; font-size: var(--small-font-size);; line-height: 1.4; text-transform: uppercase; color: #000; font-weight: bold; }
 
 /* The Add Button */
@@ -431,6 +432,7 @@ body.item-is-clicked #info-grid {
 .info-zone .piece-unit.is-filtered-out .p-size,
 .info-zone .piece-unit.is-filtered-out .p-brand,
 .info-zone .piece-unit.is-filtered-out .p-material,
+.info-zone .piece-unit.is-filtered-out .p-brand,
 .info-zone .piece-unit.is-filtered-out .p-measurements {
     filter: blur(8px) !important; /* Tighter blur so it looks like redacted text */
     opacity: 0.4 !important;      /* Slightly more faded */
