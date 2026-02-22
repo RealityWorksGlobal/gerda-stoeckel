@@ -303,6 +303,7 @@ async function initDatabase() {
                 color: piece['color'],
                 size:  piece['size'],
                 price: piece['price'],
+                material: piece['material'] || '',
                 measurements: piece['measurements'] || '',
                 sold:  piece['sold'], 
                 img:   getDirectImgLink(piece[imgKey]) 
@@ -370,6 +371,7 @@ async function initDatabase() {
 
             iItemNode.querySelector('.p-price').textContent = p.price;
             iItemNode.querySelector('.p-size').textContent = p.size;
+            
 
             const measContainer = iItemNode.querySelector('.p-measurements'); 
                 if (measContainer) {
@@ -381,6 +383,16 @@ async function initDatabase() {
                         measContainer.style.display = 'none'; // Hide if empty
                     }
                 }
+                if (p.material) {
+                const materialEl = document.createElement('span');
+                materialEl.className = 'p-material';
+                materialEl.textContent = p.material.toLowerCase(); 
+                
+                // Insert it immediately after the measurements container
+                if (measContainer) {
+                    measContainer.insertAdjacentElement('afterend', materialEl);
+                }
+            }
 
             // --- 3. SNIPCART BUTTON LOGIC ---
             const btn = iItemNode.querySelector('.add-btn');
@@ -530,63 +542,12 @@ document.addEventListener('snipcart.ready', () => {
 // 8. THE MASTER CLICK MANAGER
 // ---------------------------------------------------------
 document.addEventListener('click', (e) => {
-    // A. GATEKEEPER 1: Let the "Add to Cart" button work without interference
+    // 1. Let the "Add to Cart" button work without interference
     if (e.target.closest('.add-btn')) {
         return; 
     }
 
-    // B. GATEKEEPER 2: FIX THE LAG! 
-    // If you click ANYWHERE inside the open cart, stop this script completely.
-    if (e.target.closest('#snipcart') || e.target.closest('.snipcart-modal')) {
-        return; 
-    }
-
-    // C. SNIPCART MODAL HANDLER: Close cart drawer ONLY if clicking the background
-    const snipcartModal = document.querySelector('.snipcart-modal');
-    if (snipcartModal && !snipcartModal.contains(e.target)) {
-        if (!e.target.closest('.nav-item')) {
-            if (window.Snipcart) Snipcart.api.theme.cart.close();
-        }
-    }
-
-    // D. FOCUS MODE LOGIC: Closing the focused item
-    if (document.body.classList.contains('item-is-clicked')) {
-        const isClickingCurrentItem = e.target.closest('.selected-twin');
-        
-        // ONLY close if the click is outside the focused item
-        if (!isClickingCurrentItem) {
-            document.body.classList.remove('item-is-clicked');
-            document.querySelectorAll('.selected-twin').forEach(el => {
-                el.classList.remove('selected-twin');
-            });
-        }
-        return; 
-    }
-
-    // E. ACTIVATE FOCUS: If not in focus mode, check if they clicked an item
-    const targetItem = e.target.closest('[data-hover-id]');
-    if (targetItem) {
-        const id = targetItem.getAttribute('data-hover-id');
-        document.body.classList.add('item-is-clicked');
-        document.querySelectorAll(`[data-hover-id="${id}"]`).forEach(el => {
-            el.classList.add('selected-twin');
-        });
-    }
-});
-
-// ---------------------------------------------------------
-// 9. CONSOLIDATED CLICK MANAGER (Snipcart + Focus Logic)
-// ---------------------------------------------------------
-document.addEventListener('click', (e) => {
-    // 1. THE AGGRESSIVE GATEKEEPER
-    // If they click the button, we stop the event from "bubbling up" 
-    // so the Reset Logic (Step 3) never even hears the click.
-    if (e.target.closest('.add-btn')) {
-        // This is the key to preventing the focus page from closing
-        return; 
-    }
-
-    // 2. SNIPCART MODAL HANDLER
+    // 2. Close cart drawer ONLY if clicking the background
     const snipcartModal = document.querySelector('.snipcart-modal');
     if (snipcartModal && !snipcartModal.contains(e.target)) {
         if (!e.target.closest('.nav-item')) {
@@ -605,10 +566,14 @@ document.addEventListener('click', (e) => {
                 el.classList.remove('selected-twin');
             });
         }
+        
+        // CRITICAL: Always return here if we were in focus mode, 
+        // so it doesn't immediately open the next item!
         return; 
     }
 
     // 4. ACTIVATE FOCUS
+    // If not in focus mode, check if they clicked an item to open it
     const targetItem = e.target.closest('[data-hover-id]');
     if (targetItem) {
         const id = targetItem.getAttribute('data-hover-id');
@@ -780,3 +745,54 @@ function applyFilters() {
 // D. Listeners
 window.addEventListener('hashchange', applyFilters);
 
+// ---------------------------------------------------------
+// 11. FOCUS MODE IMAGE MAGNIFIER
+// ---------------------------------------------------------
+
+// 1. Inject the lens into the page
+const magnifier = document.createElement('div');
+magnifier.className = 'magnifier-lens';
+document.body.appendChild(magnifier);
+
+const ZOOM_LEVEL = 4; // How much it zooms in (2 = 200%, 3 = 300%)
+
+// 2. Track the mouse
+document.addEventListener('mousemove', (e) => {
+    // Only work if Focus Mode is active
+    if (!document.body.classList.contains('item-is-clicked')) {
+        magnifier.classList.remove('active');
+        return;
+    }
+
+    // Check if we are hovering exactly over the focused image
+    const img = e.target.closest('.selected-twin img');
+    
+    if (!img) {
+        magnifier.classList.remove('active');
+        return;
+    }
+
+    // 3. Activate the lens and match the image
+    magnifier.classList.add('active');
+
+    if (magnifier.style.backgroundImage !== `url("${img.src}")`) {
+        magnifier.style.backgroundImage = `url("${img.src}")`;
+    }
+
+    // Set the zoom size based on the physical image width
+    const rect = img.getBoundingClientRect();
+    magnifier.style.backgroundSize = `${rect.width * ZOOM_LEVEL}px ${rect.height * ZOOM_LEVEL}px`;
+
+    // Calculate mouse position relative to the image itself
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Center the lens directly on the mouse cursor
+    magnifier.style.left = `${e.clientX - 125}px`; // 125 is half of the 250px width
+    magnifier.style.top = `${e.clientY - 125}px`;
+
+    // Shift the background image mathematically so the exact pixel hovered is centered
+    const bgX = (x / rect.width) * 100;
+    const bgY = (y / rect.height) * 100;
+    magnifier.style.backgroundPosition = `${bgX}% ${bgY}%`;
+});

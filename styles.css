@@ -18,6 +18,7 @@ html, body {
     -ms-overflow-style: none; /* Hide scrollbar for IE/Edge */
     font-family: 'Courier New', Courier, monospace;
     text-transform: uppercase;
+    cursor: crosshair;
 }
 
 ::-webkit-scrollbar {
@@ -29,6 +30,18 @@ html, body {
     height: 100vh;
     width: 100vw;
 }
+
+/*CURSOR*/
+.info-zone .p-id-name,
+.info-zone .p-price,
+.info-zone .p-size,
+.info-zone .p-brand,
+.info-zone .p-material,
+.info-zone .p-measurements,
+#overlay-content {
+    cursor: text;
+}
+
 
 /*===========================
     01_LOADING SCREEN
@@ -270,8 +283,9 @@ html, body {
 
 .piece-id { font-weight: bold; margin-bottom: 5px; }
 .p-brand { display: block; font-size: 0.9rem; margin-top: 4px; opacity: 0.8; }
-.p-measurements { display: block; font-size: 0.85rem; line-height: 1.4; text-transform: lowercase; color: #000; margin-bottom: 5px; }
-.p-size { display: block; font-size: 0.85rem; line-height: 1.4; text-transform: uppercase; color: #000; font-weight: bold; }
+.p-material {display: block; font-size: 0.85rem; line-height: 1.4; text-transform: lowercase; color: #000; margin-top: 2px; }
+.p-measurements { display: block; font-size: 0.85rem; line-height: 1.4; text-transform: lowercase; color: #000; margin-bottom: 2px; }
+.p-size { display: block; margin-top: 5px; font-size: 0.85rem; line-height: 1.4; text-transform: uppercase; color: #000; font-weight: bold; }
 
 /* The Add Button */
 .info-zone .add-btn {
@@ -344,6 +358,7 @@ body.item-is-clicked #info-grid {
 .info-zone .piece-unit.is-filtered-out .p-price,
 .info-zone .piece-unit.is-filtered-out .p-size,
 .info-zone .piece-unit.is-filtered-out .p-brand,
+.info-zone .piece-unit.is-filtered-out .p-material,
 .info-zone .piece-unit.is-filtered-out .p-measurements {
     filter: blur(8px) !important; /* Tighter blur so it looks like redacted text */
     opacity: 0.4 !important;      /* Slightly more faded */
@@ -373,6 +388,7 @@ body.item-is-clicked #info-grid {
 .info-zone .piece-unit.is-sold .p-price,
 .info-zone .piece-unit.is-sold .p-size,
 .info-zone .piece-unit.is-sold .p-brand,
+.info-zone .piece-unit.is-sold .p-material,
 .info-zone .piece-unit.is-sold .p-measurements {
     filter: blur(8px) !important;
     opacity: 0.7;
@@ -386,6 +402,7 @@ body.item-is-clicked #info-grid {
 .info-zone .piece-unit.is-in-cart .p-price,
 .info-zone .piece-unit.is-in-cart .p-size,
 .info-zone .piece-unit.is-in-cart .p-brand,
+.info-zone .piece-unit.is-in-cart .p-material,
 .info-zone .piece-unit.is-in-cart .p-measurements {
     text-shadow: 0px 0px 14px #000000cb;
     transition: text-shadow 0.3s ease; 
@@ -542,4 +559,29 @@ body.item-is-clicked #info-grid {
     flex-direction: column !important;
     align-items: flex-start !important;
     gap: 10px;
+}
+
+/* =========================================
+   08_MAGNIFIER LENS
+========================================= */
+.magnifier-lens {
+    position: fixed;
+    width: 800px; /* Size of the zoom circle */
+    height: 800px;
+    border-radius: 50%;
+    border: 0px solid #000; /* Brutalist sharp border */
+    background-color: none;
+    background-repeat: no-repeat;
+    pointer-events: none; /* Critical: Lets the mouse click "through" it */
+    opacity: 0;
+    visibility: hidden;
+    z-index: 9999;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    transform: translate(-25%, -25%);
+}
+
+.magnifier-lens.active {
+    opacity: 1;
+    visibility: visible;
+    border: none;
 }
