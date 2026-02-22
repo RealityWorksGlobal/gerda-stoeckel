@@ -306,7 +306,8 @@ async function initDatabase() {
                 material: piece['material'] || '',
                 measurements: piece['measurements'] || '',
                 sold:  piece['sold'], 
-                img:   getDirectImgLink(piece[imgKey]) 
+                img:   getDirectImgLink(piece[imgKey]),
+                carousel: (piece['carousel'] || '').split(',').map(l => getDirectImgLink(l.trim())).filter(Boolean)
             };
 
             if (!p.id) return;
@@ -350,6 +351,7 @@ async function initDatabase() {
             }
 
             vItemNode.setAttribute('data-hover-id', p.id); 
+            vItemNode.setAttribute('data-carousel', JSON.stringify(p.carousel));
             visualElements.push(vItemNode);
 
             // --- 2. INFO GRID ELEMENT ---
@@ -539,48 +541,105 @@ document.addEventListener('snipcart.ready', () => {
 });
 
 // ---------------------------------------------------------
-// 8. THE MASTER CLICK MANAGER
+// 8. THE MASTER CLICK MANAGER & DRAG ENGINE
 // ---------------------------------------------------------
-document.addEventListener('click', (e) => {
-    // 1. Let the "Add to Cart" button work without interference
-    if (e.target.closest('.add-btn')) {
-        return; 
+
+// Helper to make the spawned images draggable
+function makeDraggable(el) {
+    let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+    el.onmousedown = dragMouseDown;
+
+    function dragMouseDown(e) {
+        e.preventDefault();
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        document.onmouseup = closeDragElement;
+        document.onmousemove = elementDrag;
+        // Bring the clicked image to the very front
+        document.querySelectorAll('.spawned-carousel-img').forEach(img => img.style.zIndex = 1000);
+        el.style.zIndex = 1001; 
+        document.body.classList.add('is-dragging');
     }
 
-    // 2. Close cart drawer ONLY if clicking the background
+    function elementDrag(e) {
+        e.preventDefault();
+        pos1 = pos3 - e.clientX;
+        pos2 = pos4 - e.clientY;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        el.style.top = (el.offsetTop - pos2) + "px";
+        el.style.left = (el.offsetLeft - pos1) + "px";
+    }
+
+    function closeDragElement() {
+        document.onmouseup = null;
+        document.onmousemove = null;
+        document.body.classList.remove('is-dragging');
+    }
+}
+
+document.addEventListener('click', (e) => {
+    if (e.target.closest('.add-btn')) return; 
+
     const snipcartModal = document.querySelector('.snipcart-modal');
     if (snipcartModal && !snipcartModal.contains(e.target)) {
-        if (!e.target.closest('.nav-item')) {
-            if (window.Snipcart) Snipcart.api.theme.cart.close();
-        }
+        if (!e.target.closest('.nav-item') && window.Snipcart) Snipcart.api.theme.cart.close();
     }
 
-    // 3. RESET FOCUS LOGIC
+    // RESET FOCUS LOGIC
     if (document.body.classList.contains('item-is-clicked')) {
-        const isClickingCurrentItem = e.target.closest('.selected-twin');
+        // If they click the focused item OR a spawned carousel image, do nothing!
+        const isClickingCurrentItem = e.target.closest('.selected-twin') || e.target.closest('.spawned-carousel-img');
         
-        // Only close if the click is truly outside the focused item
         if (!isClickingCurrentItem) {
             document.body.classList.remove('item-is-clicked');
-            document.querySelectorAll('.selected-twin').forEach(el => {
-                el.classList.remove('selected-twin');
-            });
+            document.querySelectorAll('.selected-twin').forEach(el => el.classList.remove('selected-twin'));
+            // ---> NEW: Destroy all spawned images when closing Focus Mode
+            document.querySelectorAll('.spawned-carousel-img').forEach(img => img.remove());
         }
-        
-        // CRITICAL: Always return here if we were in focus mode, 
-        // so it doesn't immediately open the next item!
         return; 
     }
 
-    // 4. ACTIVATE FOCUS
-    // If not in focus mode, check if they clicked an item to open it
+    // ACTIVATE FOCUS & SPAWN CAROUSEL
     const targetItem = e.target.closest('[data-hover-id]');
     if (targetItem) {
         const id = targetItem.getAttribute('data-hover-id');
         document.body.classList.add('item-is-clicked');
-        document.querySelectorAll(`[data-hover-id="${id}"]`).forEach(el => {
-            el.classList.add('selected-twin');
-        });
+        
+        // Find the visual grid twin to measure it and read its data
+        const visualTwin = document.querySelector(`.visual-scroll-column [data-hover-id="${id}"]`);
+        const infoTwin = document.querySelector(`#info-grid [data-hover-id="${id}"]`);
+        
+        visualTwin.classList.add('selected-twin');
+        if (infoTwin) infoTwin.classList.add('selected-twin');
+
+        // ---> NEW: THE SPAWNER
+        const carouselData = visualTwin.getAttribute('data-carousel');
+        if (carouselData) {
+            const links = JSON.parse(carouselData);
+            const targetImg = visualTwin.querySelector('img');
+            // Get the exact displayed width of the main image so they match perfectly
+            const imgWidth = targetImg ? targetImg.offsetWidth : 350; 
+
+            links.forEach(link => {
+                const img = document.createElement('img');
+                img.src = link;
+                img.className = 'spawned-carousel-img';
+                img.style.width = `${imgWidth}px`;
+                
+                // Calculate completely random coordinates (keeping it on screen)
+                const maxLeft = window.innerWidth - imgWidth;
+                const maxTop = window.innerHeight - (imgWidth * 1.5); // Estimate height ratio
+                const randomLeft = Math.max(0, Math.floor(Math.random() * maxLeft));
+                const randomTop = Math.max(0, Math.floor(Math.random() * maxTop));
+                
+                img.style.left = `${randomLeft}px`;
+                img.style.top = `${randomTop}px`;
+                
+                document.body.appendChild(img);
+                makeDraggable(img); // Make it tossable!
+            });
+        }
     }
 });
 
@@ -746,7 +805,7 @@ function applyFilters() {
 window.addEventListener('hashchange', applyFilters);
 
 // ---------------------------------------------------------
-// 11. FOCUS MODE IMAGE MAGNIFIER
+// 11. FOCUS MODE IMAGE MAGNIFIER (CLICK TO ZOOM)
 // ---------------------------------------------------------
 
 // 1. Inject the lens into the page
@@ -754,45 +813,99 @@ const magnifier = document.createElement('div');
 magnifier.className = 'magnifier-lens';
 document.body.appendChild(magnifier);
 
-const ZOOM_LEVEL = 4; // How much it zooms in (2 = 200%, 3 = 300%)
+const ZOOM_LEVEL = 4; // How much it zooms in
 
-// 2. Track the mouse
-document.addEventListener('mousemove', (e) => {
-    // Only work if Focus Mode is active
+let activeZoomImg = null; // Tracks which image is currently being zoomed
+let startX = 0, startY = 0;
+
+// 2. Track where the mouse starts pressing down
+document.addEventListener('mousedown', (e) => {
+    startX = e.clientX;
+    startY = e.clientY;
+});
+
+// 3. Handle clicks (Mouse release)
+document.addEventListener('mouseup', (e) => {
+    // If the mouse moved more than 5px while held down, it was a DRAG. Ignore the click!
+    const dist = Math.hypot(e.clientX - startX, e.clientY - startY);
+    if (dist > 5) return; 
+
+    // Are we in focus mode?
     if (!document.body.classList.contains('item-is-clicked')) {
+        activeZoomImg = null;
         magnifier.classList.remove('active');
         return;
     }
 
-    // Check if we are hovering exactly over the focused image
-    const img = e.target.closest('.selected-twin img');
+    // Did we click a valid image?
+    const img = e.target.closest('.selected-twin img') || e.target.closest('.spawned-carousel-img');
     
-    if (!img) {
+    if (img) {
+        // Toggle Logic
+        if (activeZoomImg === img) {
+            // Clicked the same image again: Turn off zoom
+            activeZoomImg = null;
+            magnifier.classList.remove('active');
+        } else {
+            // Clicked an image: Turn on zoom
+            activeZoomImg = img;
+            magnifier.classList.add('active');
+            updateMagnifier(e); 
+        }
+    } else {
+        // Clicked the background: Turn off zoom
+        activeZoomImg = null;
+        magnifier.classList.remove('active');
+    }
+});
+
+// 4. Track mouse movement for the active zoom lens
+document.addEventListener('mousemove', (e) => {
+    // If we start dragging, kill the zoom instantly
+    if (document.body.classList.contains('is-dragging')) {
+        activeZoomImg = null;
         magnifier.classList.remove('active');
         return;
     }
 
-    // 3. Activate the lens and match the image
-    magnifier.classList.add('active');
+    if (activeZoomImg) {
+        // Check if mouse is physically still inside the image boundaries
+        const rect = activeZoomImg.getBoundingClientRect();
+        const isInside = (
+            e.clientX >= rect.left && e.clientX <= rect.right &&
+            e.clientY >= rect.top && e.clientY <= rect.bottom
+        );
 
-    if (magnifier.style.backgroundImage !== `url("${img.src}")`) {
-        magnifier.style.backgroundImage = `url("${img.src}")`;
+        if (isInside) {
+            updateMagnifier(e);
+        } else {
+            // Mouse left the image! Turn off zoom.
+            activeZoomImg = null;
+            magnifier.classList.remove('active');
+        }
+    }
+});
+
+// 5. The Math Engine for the Lens
+function updateMagnifier(e) {
+    if (!activeZoomImg) return;
+
+    if (magnifier.style.backgroundImage !== `url("${activeZoomImg.src}")`) {
+        magnifier.style.backgroundImage = `url("${activeZoomImg.src}")`;
     }
 
-    // Set the zoom size based on the physical image width
-    const rect = img.getBoundingClientRect();
+    const rect = activeZoomImg.getBoundingClientRect();
     magnifier.style.backgroundSize = `${rect.width * ZOOM_LEVEL}px ${rect.height * ZOOM_LEVEL}px`;
 
-    // Calculate mouse position relative to the image itself
+    // Center the lens on the mouse (CSS transform handles the exact offset)
+    magnifier.style.left = `${e.clientX}px`; 
+    magnifier.style.top = `${e.clientY}px`;
+
+    // Shift the background image mathematically
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-
-    // Center the lens directly on the mouse cursor
-    magnifier.style.left = `${e.clientX - 125}px`; // 125 is half of the 250px width
-    magnifier.style.top = `${e.clientY - 125}px`;
-
-    // Shift the background image mathematically so the exact pixel hovered is centered
+    
     const bgX = (x / rect.width) * 100;
     const bgY = (y / rect.height) * 100;
     magnifier.style.backgroundPosition = `${bgX}% ${bgY}%`;
-});
+}

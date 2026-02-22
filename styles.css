@@ -84,10 +84,13 @@ html, body {
 
 .brand-logo {
     position: fixed;
-    bottom: 20px; 
-    left: 20px;  
+    bottom: 10px; 
+    right: 10px;
     z-index: 100;
     margin: 0; 
+    width: 15%;
+    font-size: auto;
+    text-align: right;
 }
 #nav-list {
     list-style: none;
@@ -566,8 +569,8 @@ body.item-is-clicked #info-grid {
 ========================================= */
 .magnifier-lens {
     position: fixed;
-    width: 800px; /* Size of the zoom circle */
-    height: 800px;
+    width: 600px; /* Size of the zoom circle */
+    height: 600px;
     border-radius: 50%;
     border: 0px solid #000; /* Brutalist sharp border */
     background-color: none;
@@ -577,11 +580,30 @@ body.item-is-clicked #info-grid {
     visibility: hidden;
     z-index: 9999;
     transition: opacity 0.2s ease, visibility 0.2s ease;
-    transform: translate(-25%, -25%);
+    transform: translate(-50%, -50%);
 }
 
 .magnifier-lens.active {
     opacity: 1;
     visibility: visible;
     border: none;
+}
+
+/* =========================================
+   09_SPAWNED CAROUSEL IMAGES
+========================================= */
+.spawned-carousel-img {
+    position: fixed;
+    z-index: 1000;
+    cursor: grab;
+    animation: SpawnIn 0.3s ease-out forwards;
+}
+
+.spawned-carousel-img:active {
+    cursor: grabbing;
+}
+
+@keyframes SpawnIn {
+    0% { opacity: 0; transform: scale(0.95); }
+    100% { opacity: 1; transform: scale(1); }
 }
