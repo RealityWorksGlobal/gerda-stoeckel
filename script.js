@@ -2,6 +2,15 @@ const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRu2J4BrxvuOq
 const NAV_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRu2J4BrxvuOqtk0hs0H5RyLEy8xan-RW0ic_6lXQiWn-KZJDkEBAh-pO71AovTKPUPvieSch1-b7Ny/pub?gid=263826725&single=true&output=csv';
 
 let navRows = []; 
+let archiveData = []; // Stores the IDs and tags for quick filtering
+let uniquePleats = new Set();
+let uniqueTypes = new Set();
+let uniqueSizes = new Set()
+
+// Helper to turn "FANCY RAY" into "fancy-ray"
+function slugify(text) {
+    return text.toLowerCase().trim().replace(/\s+/g, '-');
+}
 
 // ---------------------------------------------------------
 // 1. ROBUST CSV PARSER (Handles Newlines & Spaces)
@@ -56,7 +65,6 @@ function parseCSV(csvText) {
     const headers = rows[0].map(h => h.trim().toLowerCase());
     
     return rows.slice(1)
-        .filter(r => r.join('').trim() !== '') // Skip totally empty rows
         .map(row => {
             const rowData = {};
             headers.forEach((header, index) => {
@@ -64,6 +72,34 @@ function parseCSV(csvText) {
             });
             return rowData;
         });
+}
+
+// --- THE SIZE DECODER ---
+// Translates "S-L" or "S, M" into individual tags: ['s', 'm', 'l']
+function parseSizes(sizeStr) {
+    if (!sizeStr) return [];
+    let str = sizeStr.toLowerCase().trim();
+    let results = new Set();
+
+    // 1. Expand the ranges
+    if (str.includes('s-l')) { results.add('s'); results.add('m'); results.add('l'); }
+    if (str.includes('s-m')) { results.add('s'); results.add('m'); }
+    if (str.includes('m-l')) { results.add('m'); results.add('l'); }
+
+    // 2. Catch standalone letters separated by commas or spaces
+    let tokens = str.split(/[\s,-]+/);
+    tokens.forEach(t => {
+        if (t === 's') results.add('s');
+        if (t === 'm') results.add('m');
+        if (t === 'l') results.add('l');
+    });
+
+    // 3. Standardize all variants of "One Size"
+    if (str.includes('uni') || str.includes('one') || str.includes('os') || str.includes('all')) {
+        results.add('one size');
+    }
+
+    return Array.from(results);
 }
 
 // ---------------------------------------------------------
@@ -75,13 +111,13 @@ async function initSite() {
         const csvData = await response.text();
         const parsedNav = parseCSV(csvData);
 
-        // Map Sheet Headers to Logic
+        // Map Sheet Headers to Logic (REMOVED the filter so empty rows stay!)
         navRows = parsedNav.map(row => ({
-            name: row['nav-name'],          // Must match header "nav-name"
-            url:  row['url'] || row['nav-name'], 
+            name: row['nav-name'] || '',          
+            url:  row['url'] || row['nav-name'] || '', 
             type: row['type'] || 'text',    
-            text: row['text']               
-        })).filter(r => r.name); // Filter out empty rows
+            text: row['text'] || ''               
+        })); 
 
         buildNavMenu();
         await initDatabase(); 
@@ -120,47 +156,53 @@ function buildNavMenu() {
     }
 
     navRows.forEach(item => {
-        if (!item.name) return;
-
-        const name = item.name.toLowerCase();
-        const type = (item.type || '').toLowerCase();
         const li = document.createElement('li');
         li.className = 'nav-item';
 
-        const isToggleOrDb = (type === 'toggle' || name === 'database');
-        
-        // --- 1. SET THE VISUAL CONTENT (Cleaned up!) ---
-        if (name === 'cart') {
-            // Inject the magic Snipcart counter
-            li.innerHTML = 'CART (<span class="snipcart-items-count">0</span>)';
-        } else if (isToggleOrDb) {
-            // Inject the name and the circle for toggles/database
-            li.innerHTML = `${item.name.toUpperCase()} <span class="circle">○</span>`;
-        } else {
-            // Standard links
-            li.textContent = item.name.toUpperCase();
+        // --- 1. SPACER LOGIC (Preserve empty rows for layout) ---
+        if (!item.name || item.name.trim() === '') {
+            li.classList.add('spacer');
+            li.innerHTML = '&nbsp;'; 
+            li.style.pointerEvents = 'none'; 
+            navList.appendChild(li);
+            return; 
         }
 
-        if (name === 'database') databaseItemEl = li;
+        // Clean up the strings to prevent trailing space errors
+        const nameStr = item.name.toLowerCase().trim();
+        const typeStr = (item.type || '').toLowerCase().trim();
+        
+        // --- 2. VISUAL CONTENT & SECURE FILTER TAGGING ---
+        if (nameStr === 'cart') {
+            li.innerHTML = 'CART (<span class="snipcart-items-count">0</span>)';
+            li.classList.add('nav-cart-item');
+        } else if (typeStr === 'toggle' || nameStr === 'database') {
+            const isDb = nameStr === 'database';
+            li.innerHTML = `${item.name.toUpperCase()} <span class="circle">${isDb ? '●' : '○'}</span>`;
+            if (isDb) {
+                li.classList.add('active');
+                databaseItemEl = li;
+            }
+        } else {
+            li.textContent = item.name.toUpperCase();
+            
+            // NEW: If it's a filter, invisibly tag it so the Filter Engine can find it easily
+            if (typeStr === 'filter') {
+                li.setAttribute('data-is-filter-header', 'true');
+                li.setAttribute('data-category-name', nameStr); 
+            }
+        }
 
-        // --- 2. SINGLE CONSOLIDATED CLICK LISTENER ---
+        // --- 3. CLICK LISTENER ---
         li.addEventListener('click', (e) => {
-            // Handle Snipcart
-            if (name === 'cart') {
+            if (nameStr === 'cart') {
                 e.preventDefault();
                 closeOverlayAndReset();
                 if (window.Snipcart) Snipcart.api.theme.cart.open();
-                return; // Don't do anything else
-            }
-
-            // Handle Database reset
-            if (name === 'database') {
-                closeOverlayAndReset();
                 return;
             }
 
-            // Handle Overlay Toggles (About, Shipping, etc)
-            if (type === 'toggle') {
+            if (typeStr === 'toggle') {
                 document.querySelectorAll('.nav-item').forEach(el => {
                     el.classList.remove('active');
                     const circle = el.querySelector('.circle');
@@ -174,21 +216,15 @@ function buildNavMenu() {
                 overlayContent.innerHTML = (item.text || '').replace(/\n/g, '<br>');
                 overlay.classList.add('active');
                 overlay.scrollTop = 0; 
-                if(item.url) window.location.hash = item.url;
-            } else {
-                // If it's a generic link, just reset
-                closeOverlayAndReset();
+                if (item.url) window.location.hash = item.url;
+                return;
             }
+
+            // Default fallback
+            closeOverlayAndReset();
         });
 
         navList.appendChild(li);
-
-        // --- 3. SET INITIAL DATABASE STATE ---
-        if (name === 'database') {
-            li.classList.add('active');
-            const circle = li.querySelector('.circle');
-            if (circle) circle.textContent = '●';
-        }
     });
 
     // Close on background click
@@ -261,16 +297,36 @@ async function initDatabase() {
             const p = {
                 id:    piece['id'],
                 name:  piece['name'],
+                pleat: piece['pleat'],
                 type:  piece['type'],
                 style: piece['style'],
                 color: piece['color'],
                 size:  piece['size'],
                 price: piece['price'],
-                sold:  piece['sold'], // Added this
+                measurements: piece['measurements'] || '',
+                sold:  piece['sold'], 
                 img:   getDirectImgLink(piece[imgKey]) 
             };
 
             if (!p.id) return;
+
+            // 1. Extract, split by comma, and format tags
+            const itemPleats = p.pleat.split(',').map(t => t.trim()).filter(t => t);
+            const itemTypes = p.type.split(',').map(t => t.trim()).filter(t => t);
+            const itemSizes = parseSizes(p.size);
+
+            // Add to our Sets for the Nav menu
+            itemPleats.forEach(t => uniquePleats.add(t));
+            itemTypes.forEach(t => uniqueTypes.add(t));
+            itemSizes.forEach(t => uniqueSizes.add(t));
+            
+            // Save the slugified versions to our global array for the filtering engine
+            archiveData.push({
+                id: p.id,
+                pleats: itemPleats.map(slugify),
+                types: itemTypes.map(slugify),
+                sizes: itemSizes.map(slugify)
+            });
 
             const isSold = p.sold && p.sold.toLowerCase() === 'yes';
 
@@ -298,34 +354,39 @@ async function initDatabase() {
             // --- 2. INFO GRID ELEMENT ---
             const iClone = iTemplate.content.cloneNode(true);
             const iItemNode = iClone.firstElementChild;
-            if (isSold) {
-                iItemNode.classList.add('is-sold');
+
+            // COMBINATION: "ID. PLEAT TYPE" (e.g., "01. ACCORDION SKIRT")
+            const combinedTitle = [p.pleat, p.type].filter(Boolean).join(' ');
+            iItemNode.querySelector('.p-id-name').textContent = `${p.id}. ${combinedTitle.toUpperCase()}`;
+
+            // BRAND: New line (Make sure you have a class for this or repurpose an existing one)
+            // If you don't have a .p-brand class in HTML, we can inject it into the title or a tag
+            if (p.brand) {
+                const brandSpan = document.createElement('div');
+                brandSpan.className = 'p-brand'; // You can style this in CSS
+                brandSpan.textContent = p.brand.toUpperCase();
+                iItemNode.querySelector('.piece-header').appendChild(brandSpan);
             }
-            
-            iItemNode.querySelector('.p-id-name').textContent = `${p.id}. ${p.name}`;
+
             iItemNode.querySelector('.p-price').textContent = p.price;
             iItemNode.querySelector('.p-size').textContent = p.size;
-            
-            const tagContainer = iItemNode.querySelector('.tag-list');
-            [p.color, p.type, p.style].forEach(tag => {
-                if (tag) {
-                    const span = document.createElement('span');
-                    span.className = 'tag-item';
-                    span.textContent = tag;
-                    tagContainer.appendChild(span);
+
+            const measContainer = iItemNode.querySelector('.p-measurements'); 
+                if (measContainer) {
+                    if (p.measurements) {
+                        // Convert newlines from Sheet to HTML breaks
+                        measContainer.innerHTML = p.measurements.replace(/\n/g, '<br>');
+                        measContainer.style.display = 'block';
+                    } else {
+                        measContainer.style.display = 'none'; // Hide if empty
+                    }
                 }
-            });
 
             // --- 3. SNIPCART BUTTON LOGIC ---
             const btn = iItemNode.querySelector('.add-btn');
             
             if (isSold) {
-                // If SOLD: Disable button and change appearance
-                btn.textContent = 'SOLD';
-                btn.disabled = true;
-                btn.style.opacity = '0.5';
-                btn.style.cursor = 'not-allowed';
-                btn.className = 'add-btn sold-out'; // Remove Snipcart class
+                iItemNode.classList.add('is-sold');
             } else {
                 // If AVAILABLE: Setup Snipcart
                 btn.className = 'add-btn snipcart-add-item'; 
@@ -374,6 +435,9 @@ async function initDatabase() {
         layoutVisualGrid();
         window.addEventListener('resize', layoutVisualGrid);
 
+        buildFiltersUI();
+        applyFilters();
+
     } catch (err) {
         console.error("Gerda Database Error:", err);
         document.getElementById('loading-screen').style.display = 'none';
@@ -415,62 +479,304 @@ document.addEventListener('mouseover', (e) => {
 });
 
 // ---------------------------------------------------------
-// 7. CLICK-TO-FOCUS & BLUR LOGIC
+// 7. SNIPCART EVENTS & PERSISTENCE
 // ---------------------------------------------------------
-
-document.addEventListener('click', (e) => {
+document.addEventListener('snipcart.ready', () => {
     
-    // --- 1. IF ALREADY FOCUSED: ANY CLICK EXITS FOCUS MODE ---
-    if (document.body.classList.contains('item-is-clicked')) {
-        // Remove the global blur state
-        document.body.classList.remove('item-is-clicked');
-        
-        // Remove the sharpness from the twins
-        document.querySelectorAll('.selected-twin').forEach(el => {
-            el.classList.remove('selected-twin');
+    // Helper 1: Sync the visual state of the items
+    function updateCartState(item, isAdded) {
+        const btn = document.querySelector(`.add-btn[data-item-id="${item.id}"]`);
+        if (btn) isAdded ? btn.classList.add('in-cart') : btn.classList.remove('in-cart');
+
+        document.querySelectorAll(`[data-hover-id="${item.id}"]`).forEach(el => {
+            isAdded ? el.classList.add('is-in-cart') : el.classList.remove('is-in-cart');
         });
-        
-        return; // STOP HERE! This prevents jumping straight to a new item.
     }
 
-    // --- 2. IF NOT FOCUSED: CHECK IF THEY CLICKED AN ITEM ---
-    const targetItem = e.target.closest('[data-hover-id]');
+    // Helper 2: Toggle the CART nav button visibility
+    function updateCartNav() {
+        const cartNav = document.querySelector('.nav-cart-item');
+        if (!cartNav) return;
+        
+        // Check how many items are currently in the cart
+        const count = Snipcart.store.getState().cart.items.count;
+        
+        if (count > 0) {
+            cartNav.classList.add('has-items');
+        } else {
+            cartNav.classList.remove('has-items');
+        }
+    }
 
+    // A. Initial Check on Page Load
+    const items = Snipcart.store.getState().cart.items.items;
+    items.forEach(item => updateCartState(item, true));
+    updateCartNav(); // Run nav check on load
+
+    // B. When item is added
+    Snipcart.events.on('item.added', (item) => {
+        updateCartState(item, true);
+        updateCartNav(); // Update nav
+    });
+
+    // C. When item is removed
+    Snipcart.events.on('item.removed', (item) => {
+        updateCartState(item, false);
+        updateCartNav(); // Update nav
+    });
+});
+
+// ---------------------------------------------------------
+// 8. THE MASTER CLICK MANAGER
+// ---------------------------------------------------------
+document.addEventListener('click', (e) => {
+    // A. GATEKEEPER 1: Let the "Add to Cart" button work without interference
+    if (e.target.closest('.add-btn')) {
+        return; 
+    }
+
+    // B. GATEKEEPER 2: FIX THE LAG! 
+    // If you click ANYWHERE inside the open cart, stop this script completely.
+    if (e.target.closest('#snipcart') || e.target.closest('.snipcart-modal')) {
+        return; 
+    }
+
+    // C. SNIPCART MODAL HANDLER: Close cart drawer ONLY if clicking the background
+    const snipcartModal = document.querySelector('.snipcart-modal');
+    if (snipcartModal && !snipcartModal.contains(e.target)) {
+        if (!e.target.closest('.nav-item')) {
+            if (window.Snipcart) Snipcart.api.theme.cart.close();
+        }
+    }
+
+    // D. FOCUS MODE LOGIC: Closing the focused item
+    if (document.body.classList.contains('item-is-clicked')) {
+        const isClickingCurrentItem = e.target.closest('.selected-twin');
+        
+        // ONLY close if the click is outside the focused item
+        if (!isClickingCurrentItem) {
+            document.body.classList.remove('item-is-clicked');
+            document.querySelectorAll('.selected-twin').forEach(el => {
+                el.classList.remove('selected-twin');
+            });
+        }
+        return; 
+    }
+
+    // E. ACTIVATE FOCUS: If not in focus mode, check if they clicked an item
+    const targetItem = e.target.closest('[data-hover-id]');
     if (targetItem) {
         const id = targetItem.getAttribute('data-hover-id');
-        
-        // Turn on the global blur state and lock the hover
         document.body.classList.add('item-is-clicked');
-        
-        // Make the clicked item and its twin perfectly sharp
         document.querySelectorAll(`[data-hover-id="${id}"]`).forEach(el => {
             el.classList.add('selected-twin');
         });
     }
-})
+});
 
 // ---------------------------------------------------------
-// 8. SNIPCART: CLICK-AWAY TO CLOSE (Fixed!)
+// 9. CONSOLIDATED CLICK MANAGER (Snipcart + Focus Logic)
 // ---------------------------------------------------------
-document.addEventListener('click', (event) => {
-    // Find the cart modal in the DOM (Snipcart only mounts this when it's open)
+document.addEventListener('click', (e) => {
+    // 1. THE AGGRESSIVE GATEKEEPER
+    // If they click the button, we stop the event from "bubbling up" 
+    // so the Reset Logic (Step 3) never even hears the click.
+    if (e.target.closest('.add-btn')) {
+        // This is the key to preventing the focus page from closing
+        return; 
+    }
+
+    // 2. SNIPCART MODAL HANDLER
     const snipcartModal = document.querySelector('.snipcart-modal');
-    
-    // If the modal isn't currently open/on the screen, stop here.
-    if (!snipcartModal) return;
+    if (snipcartModal && !snipcartModal.contains(e.target)) {
+        if (!e.target.closest('.nav-item')) {
+            if (window.Snipcart) Snipcart.api.theme.cart.close();
+        }
+    }
 
-    // 1. Did they click inside the actual cart drawer?
-    if (snipcartModal.contains(event.target)) return;
-    
-    // 2. Did they click an "ADD TO CART" button? 
-    if (event.target.closest('.snipcart-add-item')) return;
-    
-    // 3. Did they click a Nav button (like "CART")?
-    if (event.target.closest('.nav-item')) return;
+    // 3. RESET FOCUS LOGIC
+    if (document.body.classList.contains('item-is-clicked')) {
+        const isClickingCurrentItem = e.target.closest('.selected-twin');
+        
+        // Only close if the click is truly outside the focused item
+        if (!isClickingCurrentItem) {
+            document.body.classList.remove('item-is-clicked');
+            document.querySelectorAll('.selected-twin').forEach(el => {
+                el.classList.remove('selected-twin');
+            });
+        }
+        return; 
+    }
 
-    // If we made it this far, they clicked the background or the image grid!
-    // Force Snipcart to snap shut.
-    if (window.Snipcart) {
-        Snipcart.api.theme.cart.close();
+    // 4. ACTIVATE FOCUS
+    const targetItem = e.target.closest('[data-hover-id]');
+    if (targetItem) {
+        const id = targetItem.getAttribute('data-hover-id');
+        document.body.classList.add('item-is-clicked');
+        document.querySelectorAll(`[data-hover-id="${id}"]`).forEach(el => {
+            el.classList.add('selected-twin');
+        });
     }
 });
+
+// ---------------------------------------------------------
+// 10. THE FILTER ENGINE
+// ---------------------------------------------------------
+
+// A. Build the UI in the Nav (Bulletproof Version)
+function buildFiltersUI() {
+    // Only target the specific nav items we secretly tagged as filters
+    const filterHeaders = document.querySelectorAll('.nav-item[data-is-filter-header="true"]');
+    
+    filterHeaders.forEach(navItem => {
+        const catName = navItem.getAttribute('data-category-name'); // reads 'type', 'pleat', or 'size'
+        let sourceSet, category;
+
+        // Figure out which array of data to use
+        if (catName.includes('pleat')) { 
+            sourceSet = Array.from(uniquePleats); 
+            category = 'pleat'; 
+        } else if (catName.includes('type')) { 
+            sourceSet = Array.from(uniqueTypes); 
+            category = 'type'; 
+        } else if (catName.includes('size')) { 
+            const sizeOrder = ['s', 'm', 'l', 'one size'];
+            sourceSet = Array.from(uniqueSizes).sort((a, b) => sizeOrder.indexOf(a) - sizeOrder.indexOf(b));
+            category = 'size'; 
+        } else {
+            return; // Skip if it's an unrecognized filter category
+        }
+        
+        const filterList = document.createElement('ul');
+        filterList.className = 'filter-list';
+
+        // Build the actual tags
+        sourceSet.forEach(tagText => {
+            const li = document.createElement('li');
+            li.className = 'filter-tag';
+            li.textContent = tagText.toLowerCase();
+            li.setAttribute('data-category', category);
+            li.setAttribute('data-slug', slugify(tagText));
+            
+            li.onclick = (e) => {
+                e.stopPropagation();
+                updateFilterHash(category, slugify(tagText));
+            };
+            
+            filterList.appendChild(li);
+        });
+
+        // Add the clear button
+        const clearBtn = document.createElement('div');
+        clearBtn.className = 'clear-filters-btn';
+        clearBtn.textContent = 'clear filter x';
+        clearBtn.setAttribute('data-clear-category', category); 
+        
+        clearBtn.onclick = (e) => {
+            e.stopPropagation();
+            updateFilterHash(category, null); 
+        };
+
+        navItem.appendChild(filterList);
+        navItem.appendChild(clearBtn);
+    });
+}
+
+// B. Update the URL Hash (e.g. #filter?type=pant&pleat=flat)
+function updateFilterHash(category, slug) {
+    const params = new URLSearchParams(window.location.hash.replace('#filter?', ''));
+    
+    if (slug) {
+        params.set(category, slug); // Adds or replaces the current one
+    } else {
+        params.delete(category); // Clears it if they click "clear x"
+    }
+
+    const newHash = params.toString();
+    window.location.hash = newHash ? `#filter?${newHash}` : '';
+}
+
+// C. Read the URL and Apply the Ghosts & Auto-Scroll
+function applyFilters() {
+    const params = new URLSearchParams(window.location.hash.replace('#filter?', ''));
+    const activePleat = params.get('pleat');
+    const activeType = params.get('type');
+    const activeSize = params.get('size'); 
+    
+    const isFiltering = activePleat || activeType || activeSize;
+
+    // 1. Update Nav UI Highlights
+    document.querySelectorAll('.filter-tag').forEach(tag => {
+        const isMatch = (tag.getAttribute('data-category') === 'pleat' && tag.getAttribute('data-slug') === activePleat) ||
+                        (tag.getAttribute('data-category') === 'type' && tag.getAttribute('data-slug') === activeType) ||
+                        (tag.getAttribute('data-category') === 'size' && tag.getAttribute('data-slug') === activeSize); 
+        tag.classList.toggle('active', isMatch);
+    });
+
+    // 2. Toggle Individual Clear Buttons
+    document.querySelectorAll('.clear-filters-btn').forEach(btn => {
+        const cat = btn.getAttribute('data-clear-category');
+        if ((cat === 'pleat' && activePleat) || (cat === 'type' && activeType) || (cat === 'size' && activeSize)) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    // 3. Apply the .is-filtered-out class to the grids
+    archiveData.forEach(item => {
+        let isMatch = true;
+
+        if (activePleat && !item.pleats.includes(activePleat)) isMatch = false;
+        if (activeType && !item.types.includes(activeType)) isMatch = false;
+        if (activeSize && !item.sizes.includes(activeSize)) isMatch = false; 
+
+        const elements = document.querySelectorAll(`[data-hover-id="${item.id}"]`);
+        
+        elements.forEach(el => {
+            // A: Tag the true matches specifically for the auto-scroller
+            if (isFiltering && isMatch) {
+                el.classList.add('is-filter-match');
+            } else {
+                el.classList.remove('is-filter-match');
+            }
+
+            // B: Handle the visual ghosting (with Sold Immunity)
+            if (el.classList.contains('is-sold')) return; 
+
+            if (isFiltering && !isMatch) {
+                el.classList.add('is-filtered-out');
+            } else {
+                el.classList.remove('is-filtered-out');
+            }
+        });
+    });
+
+    // 4. AUTO-SCROLL TO THE FIRST MATCHING ITEM
+    setTimeout(() => {
+        const infoGrid = document.getElementById('info-grid');
+        // If filtering, look for our exact match class. If not filtering, just look for any piece-unit (resets to top).
+        const scrollTargetClass = isFiltering ? '.is-filter-match' : '.piece-unit';
+
+        if (infoGrid) {
+            const firstVisibleInfo = infoGrid.querySelector(scrollTargetClass);
+            infoGrid.scrollTo({
+                top: firstVisibleInfo ? firstVisibleInfo.offsetTop - 10 : 0, 
+                behavior: 'smooth'
+            });
+        }
+
+        const visualCols = document.querySelectorAll('.visual-scroll-column');
+        visualCols.forEach(col => {
+            const firstVisibleImg = col.querySelector(scrollTargetClass);
+            col.scrollTo({
+                top: firstVisibleImg ? firstVisibleImg.offsetTop - 10 : 0,
+                behavior: 'smooth'
+            });
+        });
+    }, 50);
+}
+
+// D. Listeners
+window.addEventListener('hashchange', applyFilters);
+
