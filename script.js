@@ -249,15 +249,54 @@ function getDirectImgLink(url) {
 }
 
 // ---------------------------------------------------------
-// 5. DATABASE (Fixed & Consolidated)
+// 5. DATABASE (Consolidated with Video & Brand Logic)
 // ---------------------------------------------------------
 async function initDatabase() {
-    const safetyTimer = setTimeout(() => {
-        const loader = document.getElementById('loading-screen');
-        if (loader && !loader.classList.contains('loader-hidden')) {
-            loader.classList.add('loader-hidden');
-            setTimeout(() => { loader.style.display = 'none'; }, 800);
+    // --- NEW: TRAILER & LOADING FLAGS ---
+    let isDataLoaded = false;
+    let isVideoEnded = false;
+
+    // --- 6-SECOND TEXT FADE TIMER ---
+    setTimeout(() => {
+        const loaderText = document.querySelector('.loader-text');
+        if (loaderText) {
+            loaderText.style.transition = 'opacity 0.5s ease';
+            loaderText.style.opacity = '0'; 
         }
+    }, 6000);
+
+    // Master function: Only reveals site when BOTH data and video are done
+    function checkReadyToReveal() {
+        if (isDataLoaded && isVideoEnded) {
+            const loader = document.getElementById('loading-screen');
+            if (loader && !loader.classList.contains('loader-hidden')) {
+                loader.classList.add('loader-hidden');
+                setTimeout(() => { loader.style.display = 'none'; }, 800);
+            }
+        }
+    }
+
+    // Listen for the video to finish playing
+    const trailerVid = document.getElementById('web-trailer');
+    if (trailerVid) {
+        trailerVid.addEventListener('ended', () => {
+            isVideoEnded = true;
+            checkReadyToReveal();
+        });
+    } else {
+        isVideoEnded = true; // Fallback in case video is missing/blocked
+    }
+
+    // Function to handle when data/images finish loading
+
+    function handleLoadComplete() {
+        isDataLoaded = true;
+        checkReadyToReveal();
+    }
+
+    // Safety timer: Force load complete after 5 seconds just in case
+    const safetyTimer = setTimeout(() => {
+        handleLoadComplete();
     }, 5000);
 
     try {
@@ -276,20 +315,17 @@ async function initDatabase() {
         let totalImages = 0;
         let imagesLoaded = 0;
         
+        // Progress checker for images
         const checkProgress = () => {
             imagesLoaded++;
             if (imagesLoaded >= totalImages) {
                 clearTimeout(safetyTimer);
-                const loader = document.getElementById('loading-screen');
-                if (loader) {
-                    loader.classList.add('loader-hidden');
-                    setTimeout(() => { loader.style.display = 'none'; }, 800);
-                }
+                handleLoadComplete();
             }
         };
 
         products.forEach(p => { if (p[imgKey] && p[imgKey].trim() !== "") totalImages++; });
-        if (totalImages === 0) document.getElementById('loading-screen').style.display = 'none';
+        if (totalImages === 0) handleLoadComplete(); // If no images, finish immediately
         
         const visualElements = []; 
 
@@ -303,7 +339,7 @@ async function initDatabase() {
                 color:   piece['color'],
                 size:    piece['size'],
                 price:   piece['price'],
-                brand:   piece['brand'], // Added brand mapping
+                brand:   piece['brand'],
                 material: piece['material'] || '',
                 measurements: piece['measurements'] || '',
                 sold:    piece['sold'], 
@@ -333,7 +369,7 @@ async function initDatabase() {
             // --- 1. VISUAL GRID ELEMENT ---
             const vClone = vTemplate.content.cloneNode(true);
             const vItemNode = vClone.firstElementChild;
-            vItemNode.querySelector('.piece-id').textContent = `${p.id}.`;
+            vItemNode.querySelector('.piece-id').textContent = `${p.id}`; // Dot removed
             
             const imgEl = vItemNode.querySelector('.piece-img');
             if (p.img) {
@@ -357,7 +393,7 @@ async function initDatabase() {
             const iItemNode = iClone.firstElementChild;
 
             const combinedTitle = [p.pleat, p.type].filter(Boolean).join(' ');
-            const fullNameWithID = `${p.id}. ${combinedTitle.toUpperCase()}`;
+            const fullNameWithID = `${p.id} ${combinedTitle.toUpperCase()}`; // Dot removed
             
             iItemNode.querySelector('.p-id-name').textContent = fullNameWithID;
             iItemNode.querySelector('.p-price').textContent = p.price;
@@ -365,13 +401,12 @@ async function initDatabase() {
 
             const measContainer = iItemNode.querySelector('.p-measurements'); 
 
-            // 1. BRAND LOGIC
+            // 1. BRAND LOGIC (Before measurements)
             if (p.brand) {
                 const brandSpan = document.createElement('div');
                 brandSpan.className = 'p-brand';
                 brandSpan.textContent = p.brand.toUpperCase();
                 
-                // Insert it right BEFORE the measurements container starts
                 if (measContainer) {
                     measContainer.insertAdjacentElement('beforebegin', brandSpan);
                 }
@@ -387,20 +422,19 @@ async function initDatabase() {
                 }
             }
 
-            // 3. MATERIAL LOGIC
+            // 3. MATERIAL LOGIC (After measurements)
             if (p.material) {
                 const materialEl = document.createElement('span');
                 materialEl.className = 'p-material';
                 materialEl.textContent = p.material.toLowerCase(); 
                 
-                // Insert it right AFTER the measurements container
                 if (measContainer) {
                     measContainer.insertAdjacentElement('afterend', materialEl);
                 }
             }
 
             // --- 3. SNIPCART BUTTON LOGIC ---
-            const btn = iItemNode.querySelector('.add-btn'); // Only declared once now!
+            const btn = iItemNode.querySelector('.add-btn'); 
 
             if (isSold) {
                 iItemNode.classList.add('is-sold');
@@ -455,6 +489,7 @@ async function initDatabase() {
 
     } catch (err) {
         console.error("Gerda Database Error:", err);
+        // Fallback: hide loader immediately on critical error
         document.getElementById('loading-screen').style.display = 'none';
     }
 }

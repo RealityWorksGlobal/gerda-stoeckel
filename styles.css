@@ -20,7 +20,10 @@ html, body {
     overflow: hidden;
     scrollbar-width: none; /* Hide scrollbar for Firefox */
     -ms-overflow-style: none; /* Hide scrollbar for IE/Edge */
-    font-family: 'Courier New', Courier, monospace;
+    font-family: 'neue-haas-grotesk-display', Arial, sans-serif;
+    font-weight: 400;
+    font-size: 0.7em;
+    letter-spacing: 0.5em;
     text-transform: uppercase;
     cursor: crosshair;
     -webkit-user-select: none; /* Safari */
@@ -64,21 +67,38 @@ html, body {
 /*===========================
     01_LOADING SCREEN + MOBILE BLOCKER
 ===========================*/
+/* Update your existing loading-screen if needed to remove the solid white background */
 #loading-screen {
     position: fixed;
     top: 0; left: 0;
     width: 100vw; height: 100vh;
-    background: #fff;
+    background: #000; /* Changed to black so it acts as a base before video loads */
     display: flex;
     justify-content: center; align-items: center;
     z-index: 9999;
     transition: opacity 0.5s ease;
 }
 
+/* New specific rules for the video inside the loader */
+#web-trailer {
+    position: absolute; /* Absolute relative to the loading-screen */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Fills the screen perfectly */
+    z-index: 1; /* Sits at the back of the loader */
+}
+
+/* Ensure the text sits on top of the video */
 .loader-text {
+    position: relative;
+    z-index: 2; /* Puts text in front of the video */
     font-size: var(--basic-font-size);
     letter-spacing: 2px;
     animation: LoadingPulse 2s infinite ease-in-out;
+    color: #fff; 
+    mix-blend-mode: difference; 
 }
 
 @keyframes LoadingPulse {
@@ -158,9 +178,7 @@ html, body {
     right: 10px;
     z-index: 100;
     margin: 0; 
-    width: 15%;
-    font-size: auto;
-    text-align: right;
+    width: 14%;
 }
 #nav-list {
     list-style: none;
