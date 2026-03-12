@@ -249,23 +249,39 @@ function getDirectImgLink(url) {
 }
 
 // ---------------------------------------------------------
-// 5. DATABASE (Consolidated with Video & Brand Logic)
+// 5. DATABASE (Text fades at 8s/load, Video plays to end)
 // ---------------------------------------------------------
 async function initDatabase() {
-    // --- NEW: TRAILER & LOADING FLAGS ---
     let isDataLoaded = false;
     let isVideoEnded = false;
 
-    // --- 6-SECOND TEXT FADE TIMER ---
-    setTimeout(() => {
+    // --- 1. TEXT FADE LOGIC ---
+    function hideLoadingText() {
         const loaderText = document.querySelector('.loader-text');
-        if (loaderText) {
-            loaderText.style.transition = 'opacity 0.5s ease';
+        if (loaderText && loaderText.style.opacity !== '0') {
+            
+            // 1. Grab the exact opacity it is at right now (mid-pulse)
+            const currentOpacity = window.getComputedStyle(loaderText).opacity;
+            
+            // 2. Kill the CSS animation and lock the opacity at that exact number
+            loaderText.style.animation = 'none';
+            loaderText.style.opacity = currentOpacity;
+            
+            // 3. Force the browser to register this locked state (The Magic Line)
+            void loaderText.offsetWidth; 
+            
+            // 4. Now, trigger the smooth fade out
+            loaderText.style.transition = 'opacity 1s ease-out';
             loaderText.style.opacity = '0'; 
         }
-    }, 6000);
+    }
+    // 8-Second Maximum Timer: Fades the text even if the images are still loading
+    setTimeout(() => {
+        hideLoadingText();
+    }, 8000);
 
-    // Master function: Only reveals site when BOTH data and video are done
+    // --- 2. MASTER REVEAL LOGIC ---
+    // Only removes the black screen and video when BOTH are completely finished
     function checkReadyToReveal() {
         if (isDataLoaded && isVideoEnded) {
             const loader = document.getElementById('loading-screen');
@@ -276,28 +292,42 @@ async function initDatabase() {
         }
     }
 
-    // Listen for the video to finish playing
+    // --- 3. VIDEO LOGIC ---
+    // We let the video play naturally until it ends
     const trailerVid = document.getElementById('web-trailer');
     if (trailerVid) {
         trailerVid.addEventListener('ended', () => {
             isVideoEnded = true;
             checkReadyToReveal();
         });
+        trailerVid.addEventListener('error', () => {
+            isVideoEnded = true;
+            checkReadyToReveal();
+        });
+        
+        // Safety net just in case the video gets stuck buffering forever (e.g., 30 seconds)
+        setTimeout(() => {
+            if (!isVideoEnded) {
+                isVideoEnded = true;
+                checkReadyToReveal();
+            }
+        }, 30000);
     } else {
-        isVideoEnded = true; // Fallback in case video is missing/blocked
+        isVideoEnded = true;
     }
 
-    // Function to handle when data/images finish loading
-
+    // --- 4. DATA LOGIC ---
+    // Triggered when images/data finish loading
     function handleLoadComplete() {
         isDataLoaded = true;
+        hideLoadingText(); // If data loads fast (e.g., 2 seconds), fade text immediately
         checkReadyToReveal();
     }
 
-    // Safety timer: Force load complete after 5 seconds just in case
+    // Data Safety timer (Aligning it with your 8-second maximum)
     const safetyTimer = setTimeout(() => {
         handleLoadComplete();
-    }, 5000);
+    }, 6000);
 
     try {
         const response = await fetch(SHEET_URL);
