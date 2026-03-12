@@ -157,10 +157,9 @@ html, body {
 
     /* 5. Pulsating brutalist text */
     .blocker-content p {
-        font-size: 14px;
-        margin: 0;
-        color: #fff;
+        font-size: var(--basic-font-size);
         letter-spacing: 2px;
+        color: #fff;
         animation: LoadingPulse 2s infinite ease-in-out; 
     }
     
