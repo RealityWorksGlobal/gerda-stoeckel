@@ -126,36 +126,48 @@ html, body {
         left: 0;
         width: 100vw;
         height: 100vh;
-        background: #fff;
+        background: #000;
         z-index: 1000000;
         justify-content: center;
         align-items: center;
-        font-family: 'Courier New', Courier, monospace;
         text-align: center;
+        overflow: hidden; /* Prevents mobile scroll bouncing */
     }
-
+    #mobile-video {
+        position: absolute !important; 
+        top: 0;
+        left: 0;
+        width: 100vw !important;
+        height: 100vh !important;
+        object-fit: cover !important; /* This kills the black bands */
+        z-index: 1; 
+        pointer-events: none;
+    }
     /* 3. Style the "loading" text and spinner */
+    .blocker-content {
+        position: relative;
+        z-index: 2; /* Forces it to sit on top of the video */
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: #fff; 
+        mix-blend-mode: difference;
+    }
+
+    /* 5. Pulsating brutalist text */
     .blocker-content p {
-        text-transform: lowercase;
         font-size: 14px;
-        margin-top: 20px;
-        color: #000;
+        margin: 0;
+        color: #fff;
+        letter-spacing: 2px;
+        animation: LoadingPulse 2s infinite ease-in-out; 
     }
-
-    /* Simple brutalist loader */
-    .loader {
-        width: 40px;
-        height: 40px;
-        border: 2px solid #000;
-        border-top: 2px solid transparent;
-        border-radius: 50%;
-        margin: 0 auto;
-        animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+    
+    @keyframes LoadingPulse {
+    0% {opacity: 0.2;}
+    50% {opacity: 1;}
+    100% {opacity: 0.2;}
     }
 }
 
@@ -387,7 +399,6 @@ html, body {
     background-color: transparent;
     color: black;
     border: none;
-    font-family: 'Courier New', Courier, monospace;
     font-weight: bold;
     text-transform: uppercase;
     cursor: pointer;
@@ -519,7 +530,6 @@ body.item-is-clicked #info-grid {
     position: absolute;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    font-family: 'Courier New', monospace;
     font-size: var(--big-font-size);
     font-weight: 550;
     color: rgba(255, 255, 255, 0.4);
@@ -599,7 +609,7 @@ body.item-is-clicked #info-grid {
     backdrop-filter: blur(8px) !important;
     -webkit-backdrop-filter: blur(8px) !important;
     z-index: 9999 !important;
-    font-family: 'Courier New', Courier, monospace !important;
+    font-family: 'neue-haas-grotesk-display', Arial, sans-serif !important;
 }
 #snipcart *,
 .snipcart-modal,
@@ -625,7 +635,7 @@ body.item-is-clicked #info-grid {
 /* CART TITLE */
 .snipcart-cart-header::before {
     content: "CART";
-    font-family: 'Courier New', Courier, monospace !important;
+    font-family: 'neue-haas-grotesk-display', Arial, sans-serif !important;
     font-size: 14px;
     font-weight: bold;
     color: #000;
@@ -644,7 +654,7 @@ body.item-is-clicked #info-grid {
 }
 
 .snipcart-item-line__title {
-    font-family: 'Courier New', Courier, monospace !important;
+    font-family: 'neue-haas-grotesk-display', Arial, sans-serif !important;
     font-size: var(--basic-font-size) !important;
     text-align: left !important;
     display: block !important;
@@ -656,7 +666,7 @@ body.item-is-clicked #info-grid {
     width: 100%;
 }
 .snipcart-item-quantity__total-price {
-    font-family: 'Courier New', Courier, monospace !important;
+    font-family: 'neue-haas-grotesk-display', Arial, sans-serif !important;
     text-align: left !important;
 }
 /* TRASH ICON */
@@ -704,13 +714,13 @@ body.item-is-clicked #info-grid {
     padding: 0 !important;
 }
 .snipcart-summary-fees__title {
-    font-family: 'Courier New', Courier, monospace !important;
+    font-family: 'neue-haas-grotesk-display', Arial, sans-serif !important;
     font-weight: bold !important;
     font-size: var(--big-font-size)!important;
 }
 
 .snipcart-summary-fees__amount {
-    font-family: 'Courier New', Courier, monospace !important;
+    font-family: 'neue-haas-grotesk-display', Arial, sans-serif !important;
     color: #000 !important;
     font-size: var(--big-font-size) !important;
 }
@@ -731,7 +741,7 @@ body.item-is-clicked #info-grid {
     text-shadow: var(--fave-text-shadow);
 }
 .snipcart-base-button__label {
-    font-family: 'Courier New', Courier, monospace !important;
+    font-family: 'neue-haas-grotesk-display', Arial, sans-serif !important;
     font-weight: bold !important;
     font-size: var(--big-font-size) !important;
 }
@@ -745,7 +755,7 @@ body.item-is-clicked #info-grid {
     display: flex !important;
     align-items: flex-start !important; /* This forces the text to the top */
     justify-content: flex-start !important; /* This forces the text to the left */
-    font-family: 'Courier New', Courier, monospace !important;
+    font-family: 'neue-haas-grotesk-display', Arial, sans-serif !important;
     color: #000 !important;
     font-size: var(--small-font-size) !important;
     height: 100% !important;
@@ -760,7 +770,7 @@ body.item-is-clicked #info-grid {
 
 .snipcart__font--subtitle,
 .snipcart__box--badge {
-    font-family: 'Courier New', Courier, monospace !important;
+    font-family: 'neue-haas-grotesk-display', Arial, sans-serif !important;
     color: #000 !important;
     font-size: var(--big-font-size) !important;
     font-weight: bold !important;
@@ -799,7 +809,7 @@ body.item-is-clicked #info-grid {
     display: block !important;
     background-color: transparent !important;
     border-radius: 0 !important; 
-    font-family: 'Courier New', Courier, monospace !important;
+    font-family: 'neue-haas-grotesk-display', Arial, sans-serif !important;
     font-size: 13px !important;
     color: #000 !important;
     margin-top: 5px !important;
@@ -849,7 +859,7 @@ body.item-is-clicked #info-grid {
     background-color: #ffffffe8 !important; /* Make it solid so you can't see through it */
     border-top: none !important; /* Connects it to the input box above */
     z-index: 9999 !important; /* Ensure it stays above all other elements */
-    font-family: 'Courier New', Courier, monospace !important;
+    font-family: 'neue-haas-grotesk-display', Arial, sans-serif !important;
 }
 
 /* Style the individual items in the list */
@@ -894,7 +904,7 @@ body.item-is-clicked #info-grid {
 
 /* 7. Style the Form Labels (Full Name, Email, etc.) */
 .snipcart-form__label {
-    font-family: 'Courier New', Courier, monospace !important;
+    font-family: 'neue-haas-grotesk-display', Arial, sans-serif !important;
     font-size: 11px !important;
     color: #000 !important;
     text-transform: uppercase !important;
@@ -922,7 +932,7 @@ body.item-is-clicked #info-grid {
 #snipcart .snipcart-button-link {
     display: block !important;
     color: #000 !important;
-    font-family: 'Courier New', Courier, monospace !important;
+    font-family: 'neue-haas-grotesk-display', Arial, sans-serif !important;
     font-size: 13px !important;
     text-transform: lowercase !important;
     text-decoration: underline !important;
