@@ -125,34 +125,43 @@ html, body {
         top: 0;
         left: 0;
         width: 100vw;
-        height: 100vh;
+        height: 100vh; /* Fallback for older browsers */
+        height: 100dvh; /* SAFARI FIX: Dynamic height accounts for address bar */
         background: #000;
         z-index: 1000000;
         justify-content: center;
         align-items: center;
         text-align: center;
-        overflow: hidden; /* Prevents mobile scroll bouncing */
+        overflow: hidden; 
+        isolation: isolate; /* SAFARI FIX: Forces a strict stacking context */
     }
+
     #mobile-video {
         position: absolute !important; 
         top: 0;
         left: 0;
         width: 100vw !important;
         height: 100vh !important;
-        object-fit: cover !important; /* This kills the black bands */
+        height: 100dvh !important; /* SAFARI FIX: Matches the container */
+        object-fit: cover !important; 
         z-index: 1; 
         pointer-events: none;
     }
+
     /* 3. Style the "loading" text and spinner */
     .blocker-content {
         position: relative;
-        z-index: 2; /* Forces it to sit on top of the video */
+        z-index: 2; 
         width: 100%;
         display: flex;
         justify-content: center;
         align-items: center;
         color: #fff; 
         mix-blend-mode: difference;
+        
+        /* SAFARI FIX: Forces the text onto its own 3D hardware-accelerated layer so the video can't swallow it */
+        transform: translateZ(1px); 
+        -webkit-transform: translateZ(1px); 
     }
 
     /* 5. Pulsating brutalist text */
@@ -160,13 +169,14 @@ html, body {
         font-size: var(--basic-font-size);
         letter-spacing: 2px;
         color: #fff;
+        margin: 0; /* Ensuring no weird spacing offsets it */
         animation: LoadingPulse 2s infinite ease-in-out; 
     }
     
     @keyframes LoadingPulse {
-    0% {opacity: 0.2;}
-    50% {opacity: 1;}
-    100% {opacity: 0.2;}
+        0% {opacity: 0.2;}
+        50% {opacity: 1;}
+        100% {opacity: 0.2;}
     }
 }
 
