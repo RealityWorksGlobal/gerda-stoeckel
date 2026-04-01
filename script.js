@@ -283,6 +283,13 @@ async function initDatabase() {
     // --- 2. MASTER REVEAL LOGIC ---
     // Only removes the black screen and video when BOTH are completely finished
     function checkReadyToReveal() {
+
+        // ==========================================================
+        // !!! TEMPORARY CLIENT HOLD - DELETE THE NEXT LINE LATER !!!
+        // ==========================================================
+        return; // <--- DELETE THIS LINE TO LET THE SITE REVEAL AGAIN
+
+        
         if (isDataLoaded && isVideoEnded) {
             const loader = document.getElementById('loading-screen');
             if (loader && !loader.classList.contains('loader-hidden')) {

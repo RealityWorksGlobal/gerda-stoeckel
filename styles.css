@@ -1055,3 +1055,13 @@ body.item-is-clicked #info-grid {
     0% { opacity: 0; transform: scale(0.95); }
     100% { opacity: 1; transform: scale(1); }
 }
+
+/* =======================================================
+   !!! TEMPORARY CLIENT HOLD - DELETE THIS ENTIRE BLOCK LATER !!!
+   This hides the "LOADING ARCHIVE" and mobile text so only the video plays.
+   ======================================================= */
+.loader-text, 
+.blocker-content {
+    display: none !important; 
+}
+/* ======================================================= */
