@@ -252,6 +252,13 @@ function getDirectImgLink(url) {
 // 5. DATABASE (Text fades at 8s/load, Video plays to end)
 // ---------------------------------------------------------
 async function initDatabase() {
+
+    // ==========================================================
+    // !!! TEMPORARY CLIENT HOLD - DELETE THIS ENTIRE BLOCK LATER !!!
+    // ==========================================================
+    return; 
+    // ==========================================================
+    
     let isDataLoaded = false;
     let isVideoEnded = false;
 
@@ -288,7 +295,7 @@ async function initDatabase() {
         // !!! TEMPORARY CLIENT HOLD - DELETE THE NEXT LINE LATER !!!
         // ==========================================================
         return; // <--- DELETE THIS LINE TO LET THE SITE REVEAL AGAIN
-
+        
         
         if (isDataLoaded && isVideoEnded) {
             const loader = document.getElementById('loading-screen');
